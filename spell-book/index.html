@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Spell Book — Bognor's Curse</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#0d0a1a;--card:#1a1530;--gold:#f0c040;--gold-dim:#8a7020;
+  --purple:#6a3fa0;--purple-light:#9b6fd0;--blue:#2040a0;--blue-light:#4080e0;
+  --locked:#2a2540;--locked-text:#555;--text:#e8e0f0;--text-dim:#887fa0;
+  --glow:0 0 20px rgba(240,192,64,.4);--radius:16px;
+}
+html,body{height:100%;font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);overflow-x:hidden}
+body{position:relative}
+
+/* Screens */
+.screen{display:none;min-height:100vh;padding:20px;padding-bottom:100px;animation:fadeIn .3s ease}
+.screen.active{display:block}
+@keyframes fadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+
+/* Header */
+.header{text-align:center;padding:24px 0 16px}
+.header h1{font-size:28px;background:linear-gradient(135deg,var(--gold),#fff8a0,var(--gold));-webkit-background-clip:text;-webkit-text-fill-color:transparent;text-shadow:none;letter-spacing:2px}
+.header p{color:var(--text-dim);font-size:14px;margin-top:4px}
+
+/* Spell Grid */
+.spell-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:16px;max-width:640px;margin:0 auto;padding:0 4px}
+.spell-card{
+  background:var(--card);border-radius:var(--radius);padding:20px 12px;text-align:center;
+  cursor:pointer;position:relative;overflow:hidden;
+  border:2px solid transparent;transition:all .3s ease;-webkit-tap-highlight-color:transparent;
+}
+.spell-card.unlocked{border-color:rgba(240,192,64,.3);box-shadow:var(--glow)}
+.spell-card.unlocked:hover,.spell-card.unlocked:active{transform:translateY(-4px);box-shadow:0 0 30px rgba(240,192,64,.5)}
+.spell-card.locked{opacity:.5;border-color:rgba(100,80,140,.2)}
+.spell-card.locked:hover{opacity:.6}
+.spell-icon{font-size:48px;display:block;margin-bottom:8px;filter:drop-shadow(0 0 8px rgba(240,192,64,.3))}
+.spell-card.locked .spell-icon{filter:grayscale(1) brightness(.5)}
+.spell-name{font-size:15px;font-weight:700;color:var(--gold);margin-bottom:4px}
+.spell-card.locked .spell-name{color:var(--locked-text)}
+.spell-table{font-size:12px;color:var(--text-dim)}
+.spell-level{
+  display:inline-block;margin-top:8px;padding:2px 10px;border-radius:10px;font-size:11px;font-weight:700;
+  background:linear-gradient(135deg,var(--purple),var(--blue));color:#fff;
+}
+.spell-card.locked .spell-level{background:#333;color:#666}
+.spell-card .lock-icon{position:absolute;top:8px;right:8px;font-size:16px;opacity:.4}
+
+/* Shimmer on unlocked cards */
+.spell-card.unlocked::after{
+  content:'';position:absolute;top:-50%;left:-50%;width:200%;height:200%;
+  background:linear-gradient(45deg,transparent 40%,rgba(255,255,255,.03) 50%,transparent 60%);
+  animation:shimmer 4s infinite;pointer-events:none;
+}
+@keyframes shimmer{0%{transform:translateX(-100%) rotate(45deg)}100%{transform:translateX(100%) rotate(45deg)}}
+
+/* Detail View */
+.detail{max-width:480px;margin:0 auto}
+.back-btn{
+  background:none;border:none;color:var(--gold);font-size:16px;cursor:pointer;padding:8px 0;
+  display:flex;align-items:center;gap:6px;-webkit-tap-highlight-color:transparent;
+}
+.detail-icon{font-size:80px;text-align:center;display:block;margin:20px 0;filter:drop-shadow(0 0 20px rgba(240,192,64,.4))}
+.detail h2{text-align:center;font-size:28px;color:var(--gold);margin-bottom:4px}
+.detail .table-badge{text-align:center;color:var(--text-dim);margin-bottom:16px;font-size:14px}
+.detail .desc{
+  background:rgba(255,255,255,.03);border-radius:12px;padding:16px;margin-bottom:20px;
+  line-height:1.6;color:var(--text-dim);font-size:14px;border:1px solid rgba(255,255,255,.05);
+}
+/* Level progression */
+.level-track{display:flex;align-items:center;gap:0;margin:20px 0;position:relative}
+.level-node{
+  width:60px;height:60px;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  font-size:13px;font-weight:700;position:relative;z-index:1;
+  border:3px solid #333;background:var(--card);color:#555;transition:all .5s ease;
+}
+.level-node.achieved{border-color:var(--gold);color:var(--gold);box-shadow:0 0 15px rgba(240,192,64,.3);background:rgba(240,192,64,.1)}
+.level-node.current{border-color:var(--gold);color:var(--gold);box-shadow:0 0 25px rgba(240,192,64,.5);background:rgba(240,192,64,.15);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{box-shadow:0 0 15px rgba(240,192,64,.3)}50%{box-shadow:0 0 30px rgba(240,192,64,.6)}}
+.level-connector{flex:1;height:4px;background:#333;position:relative}
+.level-connector.filled{background:linear-gradient(90deg,var(--gold),var(--gold-dim))}
+.level-node small{font-size:9px;color:inherit;opacity:.7}
+
+/* Requirements */
+.requirements{background:rgba(255,255,255,.03);border-radius:12px;padding:16px;margin-bottom:20px;border:1px solid rgba(255,255,255,.05)}
+.requirements h3{font-size:14px;color:var(--purple-light);margin-bottom:8px}
+.requirements ul{list-style:none;padding:0}
+.requirements li{padding:6px 0;font-size:13px;color:var(--text-dim);display:flex;align-items:center;gap:8px}
+.requirements li::before{content:'✦';color:var(--gold);font-size:10px}
+
+/* Demo unlock button */
+.demo-btn{
+  display:block;width:100%;padding:16px;border:none;border-radius:var(--radius);cursor:pointer;
+  font-size:16px;font-weight:700;color:#fff;
+  background:linear-gradient(135deg,var(--purple),var(--blue));
+  box-shadow:0 4px 20px rgba(106,63,160,.4);transition:all .2s;-webkit-tap-highlight-color:transparent;
+}
+.demo-btn:active{transform:scale(.97)}
+
+/* Fortress Section */
+.fortress{max-width:480px;margin:20px auto 0;text-align:center}
+.fortress-header{margin-bottom:20px}
+.fortress-header h2{font-size:22px;color:var(--gold);margin-bottom:4px}
+.fortress-header p{color:var(--text-dim);font-size:13px}
+.fortress-slots{display:flex;flex-wrap:wrap;justify-content:center;gap:12px;margin:20px 0}
+.fortress-slot{
+  width:56px;height:56px;border-radius:12px;display:flex;align-items:center;justify-content:center;
+  font-size:28px;border:2px dashed #333;background:rgba(0,0,0,.2);transition:all .5s;
+}
+.fortress-slot.filled{border:2px solid rgba(240,192,64,.3);background:rgba(240,192,64,.05);box-shadow:0 0 10px rgba(240,192,64,.2)}
+.fortress-slot.empty{opacity:.4}
+.fortress-counter{
+  display:inline-block;padding:8px 24px;border-radius:20px;
+  background:linear-gradient(135deg,rgba(106,63,160,.3),rgba(32,64,160,.3));
+  font-size:14px;font-weight:700;color:var(--gold);margin-top:12px;
+}
+.fortress-teaser{
+  margin-top:24px;padding:20px;border-radius:var(--radius);
+  background:linear-gradient(135deg,rgba(60,20,80,.4),rgba(20,20,60,.4));
+  border:1px solid rgba(240,192,64,.1);
+}
+.fortress-teaser p{font-size:13px;color:var(--text-dim);line-height:1.6}
+
+/* Nav */
+.nav{
+  position:fixed;bottom:0;left:0;right:0;display:flex;
+  background:rgba(13,10,26,.95);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+  border-top:1px solid rgba(255,255,255,.05);z-index:100;
+}
+.nav button{
+  flex:1;padding:12px 0 max(12px,env(safe-area-inset-bottom));border:none;background:none;
+  color:var(--text-dim);font-size:11px;cursor:pointer;display:flex;flex-direction:column;
+  align-items:center;gap:4px;-webkit-tap-highlight-color:transparent;transition:color .2s;
+}
+.nav button.active{color:var(--gold)}
+.nav button span{font-size:22px}
+
+/* Particle canvas */
+#particles{position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:999}
+
+/* Unlock overlay */
+.unlock-overlay{
+  position:fixed;top:0;left:0;right:0;bottom:0;z-index:998;
+  display:none;align-items:center;justify-content:center;flex-direction:column;
+  background:rgba(0,0,0,.85);backdrop-filter:blur(5px);-webkit-backdrop-filter:blur(5px);
+}
+.unlock-overlay.show{display:flex;animation:fadeIn .3s ease}
+.unlock-content{text-align:center;animation:unlockPop .6s cubic-bezier(.17,.67,.29,1.2)}
+@keyframes unlockPop{0%{transform:scale(0);opacity:0}100%{transform:scale(1);opacity:1}}
+.unlock-icon{font-size:120px;display:block;filter:drop-shadow(0 0 40px rgba(240,192,64,.6));animation:float 2s ease-in-out infinite}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
+.unlock-title{font-size:28px;color:var(--gold);margin:16px 0 4px;font-weight:700}
+.unlock-subtitle{color:var(--text-dim);font-size:14px;margin-bottom:24px}
+.unlock-dismiss{
+  padding:12px 32px;border:2px solid var(--gold);background:none;border-radius:20px;
+  color:var(--gold);font-size:14px;font-weight:700;cursor:pointer;
+}
+</style>
+</head>
+<body>
+
+<canvas id="particles"></canvas>
+<div class="unlock-overlay" id="unlockOverlay">
+  <div class="unlock-content">
+    <span class="unlock-icon" id="unlockIcon"></span>
+    <div class="unlock-title" id="unlockTitle"></div>
+    <div class="unlock-subtitle" id="unlockSubtitle"></div>
+    <button class="unlock-dismiss" onclick="dismissUnlock()">Continue</button>
+  </div>
+</div>
+
+<!-- Grid Screen -->
+<div class="screen active" id="gridScreen">
+  <div class="header">
+    <h1>✦ SPELL BOOK ✦</h1>
+    <p>Master your times tables, unlock powerful spells</p>
+  </div>
+  <div class="spell-grid" id="spellGrid"></div>
+</div>
+
+<!-- Detail Screen -->
+<div class="screen" id="detailScreen">
+  <div class="detail" id="detailContent"></div>
+</div>
+
+<!-- Fortress Screen -->
+<div class="screen" id="fortressScreen">
+  <div class="header">
+    <h1>⚔️ BOGNOR'S FORTRESS</h1>
+    <p>Prepare your spells for the final battle</p>
+  </div>
+  <div class="fortress" id="fortressContent"></div>
+</div>
+
+<!-- Nav -->
+<nav class="nav">
+  <button class="active" onclick="showScreen('grid')" id="navGrid"><span>📖</span>Spells</button>
+  <button onclick="showScreen('fortress')" id="navFortress"><span>🏰</span>Fortress</button>
+</nav>
+
+<script>
+const SPELLS = [
+  {id:'ignisfera',    name:'Fireball',            latin:'Ignisfera',       table:1,  icon:'🔥', desc:'Hurls a ball of flame that destroys Guardian Shield spells. The foundational offensive spell — every apprentice must master it before approaching the Fortress. Without Ignisfera, the Guardians\' shields are impenetrable.', color:'#ffe066'},
+  {id:'aegis',        name:'Magic Missile Shield', latin:'Aegis Telorum',   table:10, icon:'🛡️', desc:'A specialised shield that absorbs arrays of magic missiles cast by Guardians. As you approach the Fortress, Guardians unleash volleys of ten missiles at a time — only Aegis Telorum can counter their barrages.', color:'#66ccff'},
+  {id:'reserare',     name:'Unlock',               latin:'Reserare',        table:2,  icon:'🔓', desc:'Opens rune-locked doors and chests throughout the Fortress. Every gate, every sealed chamber, every treasure chest requires the Unsealing spell. Without it, you cannot advance beyond the outer walls.', color:'#66ff99'},
+  {id:'reficere',     name:'Repair',               latin:'Reficere',        table:5,  icon:'🔧', desc:'Rebuilds rectangular sections of bridges and broken structures on the approach to the castle. Bognor has shattered the causeways — only Reficere can restore them, piece by piece, calculating the exact dimensions needed.', color:'#ff9966'},
+  {id:'revelare',     name:'Reveal',               latin:'Revelare',        table:9,  icon:'👁️', desc:'Exposes hidden paths, traps, and secret passages in the Fortress. Bognor has concealed deadly traps and false walls throughout his domain. The patterns of nine hold the key to seeing what is hidden.', color:'#cc99ff'},
+  {id:'luxcendere',   name:'Illuminate',           latin:'Luxcendere',      table:3,  icon:'💡', desc:'Lights dark corridors and dispels shadow enchantments. The deeper halls of the Fortress are shrouded in magical darkness — Luxcendere kindles light in sets of three, driving back the shadows.', color:'#ff6699'},
+  {id:'glaciere',     name:'Freeze',               latin:'Glaciere',        table:4,  icon:'❄️', desc:'Slows enemies and freezes obstacles blocking the path. Fortress corridors are guarded by moving barriers and swift sentinels — Glaciere locks them in ice, buying precious time to pass.', color:'#99ccff'},
+  {id:'evocare',      name:'Summon',               latin:'Evocare',         table:6,  icon:'🔮', desc:'Summons magical allies or conjures objects needed for the quest. When the path requires more than one wizard, Evocare calls forth spectral helpers to assist — six by six, they answer the call.', color:'#cc66ff'},
+  {id:'dissolvere',   name:'Dispel',               latin:'Dissolvere',      table:8,  icon:'💥', desc:'Breaks Bognor\'s enchantments and curses. The dark wizard has layered eight-fold protections around his inner sanctum — only Dissolvere can unravel them, peeling away each layer of dark magic.', color:'#ff4444'},
+  {id:'ultimara',     name:'Ultimara',             latin:'Ultimara',        table:7,  icon:'⭐', desc:'The most powerful spell, mastered last. Its true nature is revealed only at the climax of the quest. The ×7 table is the hardest to master — and so is the final spell. Only the most dedicated wizard will unlock its secrets.', color:'#ffd700'},
+];
+
+// Demo state: first 4 unlocked at various levels
+const state = {
+  ignisfera:  {unlocked:true, level:3},
+  aegis:      {unlocked:true, level:2},
+  reserare:   {unlocked:true, level:2},
+  reficere:   {unlocked:true, level:1},
+  revelare:   {unlocked:false,level:0},
+  luxcendere: {unlocked:false,level:0},
+  glaciere:   {unlocked:false,level:0},
+  evocare:    {unlocked:false,level:0},
+  dissolvere: {unlocked:false,level:0},
+  ultimara:   {unlocked:false,level:0},
+};
+
+const levelNames = ['Locked','L1','L2','L3'];
+const levelReqs = [
+  ['Answer 10 problems correctly','Complete in under 60 seconds'],
+  ['Answer 20 problems correctly','90% accuracy or higher','Complete in under 45 seconds'],
+  ['Answer 30 problems perfectly','100% accuracy','Complete in under 30 seconds'],
+];
+
+function renderGrid(){
+  const grid = document.getElementById('spellGrid');
+  grid.innerHTML = SPELLS.map(s=>{
+    const st = state[s.id];
+    const cls = st.unlocked ? 'unlocked' : 'locked';
+    const lvl = st.unlocked ? levelNames[st.level] : '🔒';
+    return `<div class="spell-card ${cls}" onclick="showDetail('${s.id}')">
+      ${!st.unlocked?'<span class="lock-icon">🔒</span>':''}
+      <span class="spell-icon">${s.icon}</span>
+      <div class="spell-name">${s.name}</div>
+      <div class="spell-table">×${s.table} table</div>
+      <span class="spell-level">${lvl}</span>
+    </div>`;
+  }).join('');
+}
+
+function showDetail(id){
+  const s = SPELLS.find(x=>x.id===id);
+  const st = state[id];
+  const isUnlocked = st.unlocked;
+  const level = st.level;
+
+  const nodes = [1,2,3].map(l=>{
+    let cls = '';
+    if(isUnlocked && l < level) cls = 'achieved';
+    else if(isUnlocked && l === level) cls = 'current';
+    return `<div class="level-node ${cls}"><span>L${l}</span><small>${l===1?'Basic':l===2?'Adept':'Master'}</small></div>`;
+  });
+  const connectors = [1,2].map(i=>`<div class="level-connector ${isUnlocked && i < level ? 'filled' : ''}"></div>`);
+  const track = [nodes[0],connectors[0],nodes[1],connectors[1],nodes[2]].join('');
+
+  const nextLevel = isUnlocked ? Math.min(level+1,3) : 1;
+  const reqs = level < 3 ? levelReqs[isUnlocked ? level : 0] : ['Fully mastered! ✨'];
+  const reqTitle = level >= 3 ? 'Mastery Complete' : (isUnlocked ? `Level ${nextLevel} Requirements` : 'Unlock Requirements');
+
+  const demoLabel = !isUnlocked ? `Demo: Unlock ${s.name}` : (level < 3 ? `Demo: Level Up to L${nextLevel}` : 'Fully Mastered ✨');
+  const demoDisabled = level >= 3;
+
+  document.getElementById('detailContent').innerHTML = `
+    <button class="back-btn" onclick="showScreen('grid')">← Spell Book</button>
+    <span class="detail-icon">${s.icon}</span>
+    <h2>${s.name}</h2>
+    <div class="table-badge">×${s.table} Times Table${isUnlocked ? ' · '+levelNames[level] : ' · Locked'}</div>
+    <div class="desc">${s.desc}</div>
+    <div class="level-track">${track}</div>
+    <div class="requirements">
+      <h3>${reqTitle}</h3>
+      <ul>${reqs.map(r=>`<li>${r}</li>`).join('')}</ul>
+    </div>
+    ${!demoDisabled ? `<button class="demo-btn" onclick="demoUnlock('${id}')">${demoLabel}</button>` : `<button class="demo-btn" style="opacity:.5;cursor:default">${demoLabel}</button>`}
+  `;
+  showScreen('detail');
+}
+
+function demoUnlock(id){
+  const s = SPELLS.find(x=>x.id===id);
+  const st = state[id];
+  if(!st.unlocked){
+    st.unlocked = true; st.level = 1;
+  } else if(st.level < 3){
+    st.level++;
+  } else return;
+  showUnlockAnimation(s, st.level);
+}
+
+function showUnlockAnimation(spell, level){
+  document.getElementById('unlockIcon').textContent = spell.icon;
+  document.getElementById('unlockTitle').textContent = level === 1 ? `${spell.name} Unlocked!` : `${spell.name} → Level ${level}!`;
+  document.getElementById('unlockSubtitle').textContent = level === 1 ? 'A new spell joins your book' : `${levelNames[level]} mastery achieved`;
+  const overlay = document.getElementById('unlockOverlay');
+  overlay.classList.add('show');
+  spawnParticles(spell.color);
+}
+
+function dismissUnlock(){
+  document.getElementById('unlockOverlay').classList.remove('show');
+  const id = SPELLS.find(s=>document.getElementById('unlockIcon').textContent===s.icon)?.id;
+  if(id) showDetail(id);
+  renderGrid();
+  renderFortress();
+}
+
+// Particle system
+const canvas = document.getElementById('particles');
+const ctx = canvas.getContext('2d');
+let particles = [];
+function resizeCanvas(){canvas.width=window.innerWidth;canvas.height=window.innerHeight}
+window.addEventListener('resize',resizeCanvas);resizeCanvas();
+
+function spawnParticles(color){
+  const cx=canvas.width/2, cy=canvas.height/2;
+  for(let i=0;i<60;i++){
+    const angle=Math.random()*Math.PI*2;
+    const speed=2+Math.random()*6;
+    particles.push({
+      x:cx,y:cy,
+      vx:Math.cos(angle)*speed,vy:Math.sin(angle)*speed,
+      life:1,decay:.008+Math.random()*.012,
+      size:3+Math.random()*5,
+      color:color||'#f0c040',
+      type:Math.random()>.7?'star':'circle'
+    });
+  }
+  // Extra sparkle ring
+  for(let i=0;i<20;i++){
+    const angle=Math.random()*Math.PI*2;
+    const dist=40+Math.random()*60;
+    particles.push({
+      x:cx+Math.cos(angle)*dist,y:cy+Math.sin(angle)*dist,
+      vx:(Math.random()-.5)*1,vy:-1-Math.random()*2,
+      life:1,decay:.015+Math.random()*.01,
+      size:2+Math.random()*3,color:'#fff',type:'circle'
+    });
+  }
+}
+
+function drawParticles(){
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  particles = particles.filter(p=>{
+    p.x+=p.vx;p.y+=p.vy;p.vy+=.05;p.life-=p.decay;
+    if(p.life<=0)return false;
+    ctx.globalAlpha=p.life;
+    ctx.fillStyle=p.color;
+    ctx.shadowColor=p.color;ctx.shadowBlur=10;
+    if(p.type==='star'){
+      ctx.font=`${p.size*3}px serif`;
+      ctx.fillText('✦',p.x,p.y);
+    } else {
+      ctx.beginPath();ctx.arc(p.x,p.y,p.size*p.life,0,Math.PI*2);ctx.fill();
+    }
+    ctx.shadowBlur=0;
+    return true;
+  });
+  ctx.globalAlpha=1;
+  requestAnimationFrame(drawParticles);
+}
+drawParticles();
+
+// Fortress view
+function renderFortress(){
+  const unlockedCount = SPELLS.filter(s=>state[s.id].unlocked).length;
+  const slots = SPELLS.map(s=>{
+    const st = state[s.id];
+    return `<div class="fortress-slot ${st.unlocked?'filled':'empty'}" title="${s.name}">${st.unlocked?s.icon:'?'}</div>`;
+  }).join('');
+
+  document.getElementById('fortressContent').innerHTML = `
+    <div class="fortress-header">
+      <h2>Your Arsenal</h2>
+      <p>Each mastered spell becomes a weapon against Bognor</p>
+    </div>
+    <div class="fortress-slots">${slots}</div>
+    <div class="fortress-counter">${unlockedCount} of 10 spells ready</div>
+    <div class="fortress-teaser">
+      <p>🏰 When you've mastered enough spells, the gates of Bognor's Fortress will open. Inside, you'll face the dark wizard himself — and only your spells can defeat him.</p>
+      <p style="margin-top:12px;color:var(--gold);font-weight:700">${unlockedCount >= 7 ? '⚔️ The fortress gates tremble... you are nearly ready!' : unlockedCount >= 4 ? '🔥 Bognor grows uneasy. Keep going!' : '📖 Keep practising to unlock more spells.'}</p>
+    </div>
+  `;
+}
+
+// Navigation
+function showScreen(name){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.nav button').forEach(b=>b.classList.remove('active'));
+  if(name==='grid'){
+    document.getElementById('gridScreen').classList.add('active');
+    document.getElementById('navGrid').classList.add('active');
+  } else if(name==='detail'){
+    document.getElementById('detailScreen').classList.add('active');
+    document.getElementById('navGrid').classList.add('active');
+  } else if(name==='fortress'){
+    document.getElementById('fortressScreen').classList.add('active');
+    document.getElementById('navFortress').classList.add('active');
+    renderFortress();
+  }
+}
+
+// Init
+renderGrid();
+renderFortress();
+</script>
+</body>
+</html>

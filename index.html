@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bognor's Curse — Prototypes</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Inter:wght@400;500&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Inter', sans-serif;
+    background: #0a0a12;
+    color: #e0dcd0;
+    min-height: 100vh;
+    background-image:
+      radial-gradient(ellipse at 20% 50%, rgba(88, 40, 180, 0.12) 0%, transparent 50%),
+      radial-gradient(ellipse at 80% 20%, rgba(40, 100, 180, 0.08) 0%, transparent 50%);
+  }
+
+  header {
+    text-align: center;
+    padding: 3rem 1rem 2rem;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+  }
+
+  header h1 {
+    font-family: 'Cinzel', serif;
+    font-size: 2.4rem;
+    background: linear-gradient(135deg, #c9a0ff, #7b5ea7, #c9a0ff);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    letter-spacing: 0.05em;
+  }
+
+  header p {
+    margin-top: 0.5rem;
+    color: #8a8698;
+    font-size: 0.95rem;
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1.25rem;
+    max-width: 1000px;
+    margin: 2rem auto;
+    padding: 0 1.25rem 3rem;
+  }
+
+  .card {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 12px;
+    padding: 1.5rem;
+    text-decoration: none;
+    color: inherit;
+    transition: all 0.2s;
+  }
+
+  .card:hover {
+    background: rgba(140, 80, 220, 0.08);
+    border-color: rgba(140, 80, 220, 0.3);
+    transform: translateY(-2px);
+  }
+
+  .card h2 {
+    font-family: 'Cinzel', serif;
+    font-size: 1.15rem;
+    color: #c9a0ff;
+    margin-bottom: 0.5rem;
+  }
+
+  .card p {
+    font-size: 0.85rem;
+    color: #8a8698;
+    line-height: 1.5;
+  }
+
+  .tag {
+    display: inline-block;
+    margin-top: 0.75rem;
+    font-size: 0.7rem;
+    padding: 0.2em 0.6em;
+    border-radius: 4px;
+    background: rgba(140,80,220,0.15);
+    color: #b08ae0;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>⚔️ Bognor's Curse</h1>
+  <p>Prototype Grimoire — Interactive Previews</p>
+</header>
+<div class="grid">
+  <a class="card" href="spell-book/">
+    <h2>Spell Book</h2>
+    <p>The magical spell book interface — browse, craft, and collect spells in an enchanted tome.</p>
+    <span class="tag">HTML</span>
+  </a>
+  <a class="card" href="spell-crafting/">
+    <h2>Spell Crafting</h2>
+    <p>Drag-and-drop spell crafting workshop — combine ingredients to create new spells.</p>
+    <span class="tag">Flutter</span>
+  </a>
+  <a class="card" href="array-builder/">
+    <h2>Array Builder</h2>
+    <p>Visual array construction — build and manipulate arrays through interactive grids.</p>
+    <span class="tag">Flutter</span>
+  </a>
+  <a class="card" href="commutativity/">
+    <h2>Commutativity</h2>
+    <p>Explore the commutative property through visual manipulation of number groups.</p>
+    <span class="tag">Flutter</span>
+  </a>
+  <a class="card" href="digit-draw/">
+    <h2>Digit Draw</h2>
+    <p>Handwriting recognition for digits — draw numbers and see them recognized in real-time.</p>
+    <span class="tag">Flutter</span>
+  </a>
+  <a class="card" href="family-progression/">
+    <h2>Family Progression</h2>
+    <p>Fact family progression system — advance through related mathematical facts.</p>
+    <span class="tag">Flutter</span>
+  </a>
+  <a class="card" href="scatter-to-array/">
+    <h2>Scatter to Array</h2>
+    <p>Transform scattered objects into organized arrays — visual multiplication concepts.</p>
+    <span class="tag">Flutter</span>
+  </a>
+  <a class="card" href="three-panel/">
+    <h2>Three Panel</h2>
+    <p>Three-panel layout exploration — multi-view prototype for game UI concepts.</p>
+    <span class="tag">Flutter</span>
+  </a>
+</div>
+</body>
+</html>
