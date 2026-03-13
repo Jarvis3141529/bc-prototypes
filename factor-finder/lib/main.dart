@@ -228,8 +228,16 @@ class _FactorFinderScreenState extends State<FactorFinderScreen>
           final c = i % cols;
           return Offset(ox + c * spacing, oy + r * spacing);
         } else {
+          // Remainders: scatter loosely below the grid, offset and tilted
+          // so they clearly don't form a row
           final c = i - fullCount;
-          return Offset(ox + c * spacing, oy + spell * spacing);
+          final jitter = (c.isEven ? 8.0 : -6.0) + c * 3.0;
+          final yJitter = c.isOdd ? -10.0 : 8.0;
+          final xStart = ox + (area.width - gridW) * 0.15; // offset left
+          return Offset(
+            xStart + c * (spacing * 1.3) + jitter,
+            oy + spell * spacing + spacing * 0.3 + yJitter,
+          );
         }
       });
 

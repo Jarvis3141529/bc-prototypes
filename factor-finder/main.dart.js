@@ -7138,13 +7138,15 @@ _.a=a
 _.b=b
 _.c=c
 _.d=d},
-a0L:function a0L(a,b,c,d,e,f){var _=this
+a0L:function a0L(a,b,c,d,e,f,g,h){var _=this
 _.a=a
 _.b=b
 _.c=c
 _.d=d
 _.e=e
-_.f=f},
+_.f=f
+_.r=g
+_.w=h},
 a0M:function a0M(a,b){this.a=a
 this.b=b},
 a0N:function a0N(){},
@@ -34076,36 +34078,37 @@ p=d.f
 p[h]=new A.q(B.c.bL(p[h].a-m,s,q),B.c.bL(d.f[h].b-g,o,n))}}d.r=A.eQ(p,!0,a)},
 Cr(a,b,c){var s=this.gkE(),r=s.a,q=s.c-r,p=s.b,o=s.d-p,n=B.c.bL(Math.min((q-20)/b,(o-20)/a),32,52)
 return A.AX(c,new A.a0O(b,r+(q-(b-1)*n)/2,n,p+(o-(a-1)*n)/2),!0,t.o)},
-Qr(a){var s,r,q,p,o,n,m,l,k,j,i,h=this,g=h.w
-g===$&&A.b()
-g=g.r
-if(g!=null&&g.a!=null||h.ay||h.ch||h.CW)return
-if(h.Q.A(0,a))return
-h.as=a
-g=B.ah[h.e]
-s=B.f.aO(g,a)
+Qr(a){var s,r,q,p,o,n,m,l,k,j,i,h,g=this,f=g.w
+f===$&&A.b()
+f=f.r
+if(f!=null&&f.a!=null||g.ay||g.ch||g.CW)return
+if(g.Q.A(0,a))return
+g.as=a
+f=B.ah[g.e]
+s=B.f.aO(f,a)
 r=s===0
-h.at=r
+g.at=r
 q=""+a+" \xd7 "
-if(r){p=B.f.fb(g,a)
-h.r=h.Cr(a,p,g)
-h.cy=q+p+" = "+B.ah[h.e]+" \u2713"
-h.db=B.af}else{p=B.f.fb(g,a)
+if(r){p=B.f.fb(f,a)
+g.r=g.Cr(a,p,f)
+g.cy=q+p+" = "+B.ah[g.e]+" \u2713"
+g.db=B.af}else{p=B.f.fb(f,a)
 o=a*p
 r=a+1
 n=Math.max(p,s)
-h.Cr(r,n,g)
-m=h.gkE()
-g=m.a
-l=m.c-g
+g.Cr(r,n,f)
+m=g.gkE()
+f=m.a
+l=m.c-f
 k=m.b
 j=m.d-k
 i=B.c.bL(Math.min((l-20)/n,(j-20)/r),32,52)
-h.r=A.AX(B.ah[h.e],new A.a0L(o,p,g+(l-(n-1)*i)/2,i,k+(j-a*i-i)/2,a),!0,t.o)
-h.cy=q+p+" = "+o+"... "+s+" left over!"
-h.db=B.aP}h.ax=!0
-h.w.hX(0).aY(new A.a0M(h,a),t.P)
-h.an(new A.a0N())},
+h=(n-1)*i
+g.r=A.AX(B.ah[g.e],new A.a0L(o,p,f+(l-h)/2,i,k+(j-a*i-i)/2,m,h,a),!0,t.o)
+g.cy=q+p+" = "+o+"... "+s+" left over!"
+g.db=B.aP}g.ax=!0
+g.w.hX(0).aY(new A.a0M(g,a),t.P)
+g.an(new A.a0N())},
 V3(a){var s,r,q,p=this
 p.Q.u(0,a)
 s=J.Qa(20,t.Ff)
@@ -34253,10 +34256,17 @@ $1(a){var s=this,r=s.a,q=B.f.fb(a,r),p=s.c
 return new A.q(s.b+B.f.aO(a,r)*p,s.d+q*p)},
 $S:90}
 A.a0L.prototype={
-$1(a){var s,r=this,q=r.a,p=r.c,o=r.d,n=r.e
-if(a<q){q=r.b
-s=B.f.fb(a,q)
-return new A.q(p+B.f.aO(a,q)*o,n+s*o)}else return new A.q(p+(a-q)*o,n+r.f*o)},
+$1(a){var s,r,q,p,o,n=this,m=n.a
+if(a<m){m=n.b
+s=B.f.fb(a,m)
+r=n.d
+return new A.q(n.c+B.f.aO(a,m)*r,n.e+s*r)}else{q=a-m
+m=q&1
+r=m===0?8:-6
+p=m===1?-10:8
+m=n.f
+o=n.d
+return new A.q(n.c+(m.c-m.a-n.r)*0.15+q*(o*1.3)+(r+q*3),n.e+n.w*o+o*0.3+p)}},
 $S:90}
 A.a0M.prototype={
 $1(a){var s=this.a
