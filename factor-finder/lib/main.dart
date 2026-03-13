@@ -9,7 +9,6 @@ const kBgColor = Color(0xFF1A0533);
 const kGold = Color(0xFFFFD700);
 const kParchment = Color(0xFFF5E6C8);
 const kCyan = Color(0xFF00E5FF);
-const kCyanDim = Color(0xFF0088AA);
 const kGreenGlow = Color(0xFF00FF88);
 const kRedGlow = Color(0xFFFF4444);
 
@@ -38,7 +37,6 @@ Set<int> _factors(int n) {
   return f;
 }
 
-/// Factor pairs where a <= b
 List<(int, int)> _factorPairs(int n) {
   final pairs = <(int, int)>[];
   for (var i = 1; i * i <= n; i++) {
@@ -59,30 +57,26 @@ class _FactorFinderScreenState extends State<FactorFinderScreen>
   int _targetIdx = 0;
   int get _target => kTargets[_targetIdx];
 
-  // Dot positions: scattered and grid
   List<Offset> _scatterPositions = [];
   List<Offset> _gridPositions = [];
 
-  // Animation
   late AnimationController _dotAnim;
   late AnimationController _shakeAnim;
   late AnimationController _sparkleAnim;
   late AnimationController _celebrationAnim;
 
-  // State
   Set<int> _foundFactors = {};
-  int? _activeCast; // currently cast spell number
+  int? _activeCast;
   bool _isFactor = false;
   bool _showResult = false;
   bool _isShaking = false;
   bool _celebrating = false;
+  bool _holdingResult = false; // waiting for user to dismiss
+  bool _allFound = false;
   String _resultText = '';
   Color _resultColor = kGreenGlow;
 
-  // Sparkle particles
   List<_Sparkle> _sparkles = [];
-
-  // Celebration particles
   List<_CelebParticle> _celebParticles = [];
 
   @override
@@ -128,14 +122,15 @@ class _FactorFinderScreenState extends State<FactorFinderScreen>
     _showResult = false;
     _isShaking = false;
     _celebrating = false;
+    _holdingResult = false;
+    _allFound = false;
     _generateScatter();
     setState(() {});
   }
 
   Rect get _dotArea {
     final sz = MediaQuery.of(context).size;
-    // Leave space for title top and buttons bottom
-    return Rect.fromLTWH(40, 120, sz.width - 80, sz.height - 300);
+    return Rect.fromLTWH(24, 120, sz.width - 48, sz.height - 310);
   }
 
   void _generateScatter() {
@@ -146,56 +141,95 @@ class _FactorFinderScreenState extends State<FactorFinderScreen>
         area.top + _rng.nextDouble() * (area.height - 48),
       );
     });
+    // Spread apart
+    for (int pass = 0; pass < 30; pass++) {
+      for (int i = 0; i < _scatterPositions.length; i++) {
+        for (int j = i + 1; j < _scatterPositions.length; j++) {
+          final diff = _scatterPositions[i] - _scatterPositions[j];
+          final dist = diff.distance;
+          if (dist < 52) {
+            final push = dist < 1
+                ? Offset(_rng.nextDouble() * 10 - 5, _rng.nextDouble() * 10 - 5)
+                : diff / dist * 3;
+            _scatterPositions[i] = Offset(
+              (_scatterPositions[i].dx + push.dx).clamp(area.left, area.right - 48),
+              (_scatterPositions[i].dy + push.dy).clamp(area.top, area.bottom - 48),
+            );
+            _scatterPositions[j] = Offset(
+              (_scatterPositions[j].dx - push.dx).clamp(area.left, area.right - 48),
+              (_scatterPositions[j].dy - push.dy).clamp(area.top, area.bottom - 48),
+            );
+          }
+        }
+      }
+    }
     _gridPositions = List.from(_scatterPositions);
   }
 
+  /// Calculate grid positions that fit within the dot area.
+  List<Offset> _computeGridPositions(int rows, int cols, int total) {
+    final area = _dotArea;
+    const minDot = 28.0;
+    const maxDot = 44.0;
+
+    // Calculate spacing to fit within area
+    final spacingW = (area.width - 20) / cols;
+    final spacingH = (area.height - 20) / rows;
+    final spacing = min(spacingW, spacingH).clamp(minDot + 4, maxDot + 8);
+
+    final gridW = (cols - 1) * spacing;
+    final gridH = (rows - 1) * spacing;
+    final ox = area.left + (area.width - gridW) / 2;
+    final oy = area.top + (area.height - gridH) / 2;
+
+    return List.generate(total, (i) {
+      final r = i ~/ cols;
+      final c = i % cols;
+      return Offset(ox + c * spacing, oy + r * spacing);
+    });
+  }
+
   void _castSpell(int spell) {
-    if (_dotAnim.isAnimating || _isShaking || _celebrating) return;
-    if (_foundFactors.contains(spell)) return; // already found
+    if (_dotAnim.isAnimating || _isShaking || _celebrating || _holdingResult) return;
+    if (_foundFactors.contains(spell)) return;
 
     _activeCast = spell;
     _isFactor = _target % spell == 0;
 
-    final area = _dotArea;
-    final dotSize = 44.0;
-
     if (_isFactor) {
-      final rows = spell;
       final cols = _target ~/ spell;
-      // Center the grid
-      final gridW = cols * (dotSize + 8.0) - 8;
-      final gridH = rows * (dotSize + 8.0) - 8;
-      final ox = area.left + (area.width - gridW) / 2;
-      final oy = area.top + (area.height - gridH) / 2;
-
-      _gridPositions = List.generate(_target, (i) {
-        final r = i ~/ cols;
-        final c = i % cols;
-        return Offset(ox + c * (dotSize + 8), oy + r * (dotSize + 8));
-      });
-
-      _resultText = '$spell × ${cols} = $_target ✓';
+      _gridPositions = _computeGridPositions(spell, cols, _target);
+      _resultText = '$spell × $cols = $_target ✓';
       _resultColor = kGreenGlow;
     } else {
-      final rows = spell;
       final cols = _target ~/ spell;
       final remainder = _target % spell;
-      final fullCount = rows * cols;
+      final fullCount = spell * cols;
 
-      final gridW = max(cols, remainder) * (dotSize + 8.0) - 8;
-      final gridH = (rows + 1) * (dotSize + 8.0) - 8;
+      // Grid for full rows + extra row for remainders
+      final allPositions = _computeGridPositions(spell + 1, max(cols, remainder), _target);
+      // Recompute: place full grid first, then remainders
+      final area = _dotArea;
+      const minDot = 28.0;
+      const maxDot = 44.0;
+      final effCols = max(cols, remainder);
+      final spacingW = (area.width - 20) / effCols;
+      final spacingH = (area.height - 20) / (spell + 1);
+      final spacing = min(spacingW, spacingH).clamp(minDot + 4, maxDot + 8);
+
+      final gridW = (effCols - 1) * spacing;
+      final gridH = spell * spacing; // full rows only for centering
       final ox = area.left + (area.width - gridW) / 2;
-      final oy = area.top + (area.height - gridH) / 2;
+      final oy = area.top + (area.height - gridH - spacing) / 2;
 
       _gridPositions = List.generate(_target, (i) {
         if (i < fullCount) {
           final r = i ~/ cols;
           final c = i % cols;
-          return Offset(ox + c * (dotSize + 8), oy + r * (dotSize + 8));
+          return Offset(ox + c * spacing, oy + r * spacing);
         } else {
-          // Remainder dots on extra row
           final c = i - fullCount;
-          return Offset(ox + c * (dotSize + 8), oy + rows * (dotSize + 8));
+          return Offset(ox + c * spacing, oy + spell * spacing);
         }
       });
 
@@ -216,23 +250,46 @@ class _FactorFinderScreenState extends State<FactorFinderScreen>
   }
 
   void _onFactorFound(int spell) {
-    // Add both the spell and its complement
+    // Only mark THIS spell as found — complement must be discovered separately
     _foundFactors.add(spell);
-    final complement = _target ~/ spell;
-    _foundFactors.add(complement);
 
-    // Sparkles
     _sparkles = List.generate(20, (_) => _Sparkle(_rng));
     _sparkleAnim.forward(from: 0);
 
-    // Check completion
+    // Hold the result — user decides when to continue
+    _holdingResult = true;
+    setState(() {});
+  }
+
+  void _dismissResult() {
+    if (!_holdingResult) return;
+    _holdingResult = false;
+
+    // Check if all factors are found
     final allFactors = _factors(_target);
     if (_foundFactors.containsAll(allFactors)) {
-      Future.delayed(const Duration(milliseconds: 1000), () {
-        _startCelebration();
-      });
+      _allFound = true;
+      setState(() {});
+      return; // Show "Next" button, don't auto-advance
     }
 
+    // Scatter back for next cast
+    _generateScatter();
+    _gridPositions = List.from(_scatterPositions);
+    _dotAnim.value = 0;
+    _showResult = false;
+    _activeCast = null;
+    setState(() {});
+  }
+
+  void _advanceToNext() {
+    _celebrating = true;
+    _celebParticles = List.generate(60, (_) => _CelebParticle(_rng));
+    _celebrationAnim.forward(from: 0).then((_) {
+      if (!mounted) return;
+      _targetIdx = (_targetIdx + 1) % kTargets.length;
+      _initLevel();
+    });
     setState(() {});
   }
 
@@ -242,7 +299,6 @@ class _FactorFinderScreenState extends State<FactorFinderScreen>
       Future.delayed(const Duration(milliseconds: 800), () {
         if (!mounted) return;
         _isShaking = false;
-        // Scatter back
         _generateScatter();
         _gridPositions = List.from(_scatterPositions);
         _dotAnim.value = 0;
@@ -254,47 +310,12 @@ class _FactorFinderScreenState extends State<FactorFinderScreen>
     setState(() {});
   }
 
-  void _startCelebration() {
-    _celebrating = true;
-    _celebParticles = List.generate(60, (_) => _CelebParticle(_rng));
-    _celebrationAnim.forward(from: 0).then((_) {
-      Future.delayed(const Duration(milliseconds: 500), () {
-        if (!mounted) return;
-        _targetIdx = (_targetIdx + 1) % kTargets.length;
-        _initLevel();
-      });
-    });
-    setState(() {});
-  }
-
-  void _resetAfterFactor() {
-    // After a short delay, scatter dots back for next cast
-    Future.delayed(const Duration(milliseconds: 1200), () {
-      if (!mounted) return;
-      _generateScatter();
-      _gridPositions = List.from(_scatterPositions);
-      _dotAnim.value = 0;
-      _showResult = false;
-      _activeCast = null;
-      setState(() {});
-    });
-  }
-
   @override
   Widget build(BuildContext context) {
-    // If factor found and sparkle done, reset
-    if (_isFactor &&
-        _activeCast != null &&
-        _dotAnim.isCompleted &&
-        !_sparkleAnim.isAnimating &&
-        !_celebrating) {
-      WidgetsBinding.instance.addPostFrameCallback((_) => _resetAfterFactor());
-    }
-
     return Scaffold(
       body: Stack(
         children: [
-          // Background gradient
+          // Background
           Container(
             decoration: const BoxDecoration(
               gradient: RadialGradient(
@@ -319,9 +340,7 @@ class _FactorFinderScreenState extends State<FactorFinderScreen>
                     fontSize: 28,
                     fontWeight: FontWeight.bold,
                     color: kGold,
-                    shadows: [
-                      Shadow(color: kGold.withAlpha(100), blurRadius: 20),
-                    ],
+                    shadows: [Shadow(color: kGold.withAlpha(100), blurRadius: 20)],
                   ),
                 ),
                 const SizedBox(height: 4),
@@ -330,9 +349,7 @@ class _FactorFinderScreenState extends State<FactorFinderScreen>
                   style: GoogleFonts.cinzelDecorative(
                     fontSize: 20,
                     color: kCyan,
-                    shadows: [
-                      Shadow(color: kCyan.withAlpha(120), blurRadius: 16),
-                    ],
+                    shadows: [Shadow(color: kCyan.withAlpha(120), blurRadius: 16)],
                   ),
                 ),
               ],
@@ -358,14 +375,76 @@ class _FactorFinderScreenState extends State<FactorFinderScreen>
                   fontSize: 22,
                   fontWeight: FontWeight.bold,
                   color: _resultColor,
-                  shadows: [
-                    Shadow(color: _resultColor.withAlpha(150), blurRadius: 12),
-                  ],
+                  shadows: [Shadow(color: _resultColor.withAlpha(150), blurRadius: 12)],
                 ),
               ),
             ),
 
-          // Progress - factors found
+          // "Tap to continue" when holding a factor result
+          if (_holdingResult)
+            Positioned(
+              top: _dotArea.bottom + 8,
+              left: 0,
+              right: 0,
+              child: GestureDetector(
+                onTap: _dismissResult,
+                child: Container(
+                  color: Colors.transparent,
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  child: Text(
+                    'Tap anywhere to continue',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: kParchment.withAlpha(180),
+                      fontStyle: FontStyle.italic,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+
+          // Full-screen tap target when holding result
+          if (_holdingResult)
+            Positioned.fill(
+              child: GestureDetector(
+                onTap: _dismissResult,
+                behavior: HitTestBehavior.translucent,
+              ),
+            ),
+
+          // "All Found!" + Next button
+          if (_allFound && !_celebrating)
+            Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    '✨ All Factors Found! ✨',
+                    style: GoogleFonts.cinzelDecorative(
+                      fontSize: 28,
+                      color: kGold,
+                      fontWeight: FontWeight.bold,
+                      shadows: [Shadow(color: kGold, blurRadius: 24)],
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  ElevatedButton(
+                    onPressed: _advanceToNext,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: kGold.withAlpha(40),
+                      foregroundColor: kGold,
+                      side: const BorderSide(color: kGold, width: 2),
+                      padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+                    ),
+                    child: const Text('Next Number →', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                  ),
+                ],
+              ),
+            ),
+
+          // Progress
           Positioned(
             bottom: 100,
             left: 0,
@@ -390,15 +469,34 @@ class _FactorFinderScreenState extends State<FactorFinderScreen>
 
   List<Widget> _buildDots() {
     final t = _dotAnim.value;
-    final shake =
-        _isShaking ? sin(_shakeAnim.value * pi * 6) * 6 : 0.0;
+    final shake = _isShaking ? sin(_shakeAnim.value * pi * 6) * 6 : 0.0;
+
+    // Calculate dot display size based on grid spacing
+    final area = _dotArea;
+    double dotSize = 44.0;
+    if (_activeCast != null && _isFactor) {
+      final rows = _activeCast!;
+      final cols = _target ~/ _activeCast!;
+      final spacingW = (area.width - 20) / cols;
+      final spacingH = (area.height - 20) / rows;
+      final spacing = min(spacingW, spacingH).clamp(32.0, 52.0);
+      dotSize = (spacing - 6).clamp(24.0, 44.0);
+      // Lerp size during animation
+      dotSize = 44.0 + (dotSize - 44.0) * Curves.easeInOut.transform(t);
+    } else if (_activeCast != null && !_isFactor) {
+      final rows = _activeCast!;
+      final cols = _target ~/ _activeCast!;
+      final effCols = max(cols, _target % _activeCast!);
+      final spacingW = (area.width - 20) / effCols;
+      final spacingH = (area.height - 20) / (rows + 1);
+      final spacing = min(spacingW, spacingH).clamp(32.0, 52.0);
+      dotSize = (spacing - 6).clamp(24.0, 44.0);
+      dotSize = 44.0 + (dotSize - 44.0) * Curves.easeInOut.transform(t);
+    }
 
     return List.generate(_target, (i) {
-      final from = i < _scatterPositions.length
-          ? _scatterPositions[i]
-          : Offset.zero;
-      final to =
-          i < _gridPositions.length ? _gridPositions[i] : Offset.zero;
+      final from = i < _scatterPositions.length ? _scatterPositions[i] : Offset.zero;
+      final to = i < _gridPositions.length ? _gridPositions[i] : Offset.zero;
       final pos = Offset.lerp(from, to, Curves.easeInOutCubic.transform(t))!;
 
       final isRemainder = _activeCast != null &&
@@ -406,20 +504,17 @@ class _FactorFinderScreenState extends State<FactorFinderScreen>
           i >= (_activeCast! * (_target ~/ _activeCast!));
 
       return Positioned(
-        left: pos.dx + shake,
-        top: pos.dy,
+        left: pos.dx + shake - (dotSize - 44) / 2,
+        top: pos.dy - (dotSize - 44) / 2,
         child: Container(
-          width: 44,
-          height: 44,
+          width: dotSize,
+          height: dotSize,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            color: isRemainder && t > 0.5
-                ? kRedGlow.withAlpha(180)
-                : kCyan.withAlpha(200),
+            color: isRemainder && t > 0.5 ? kRedGlow.withAlpha(180) : kCyan.withAlpha(200),
             boxShadow: [
               BoxShadow(
-                color: (isRemainder && t > 0.5 ? kRedGlow : kCyan)
-                    .withAlpha(120),
+                color: (isRemainder && t > 0.5 ? kRedGlow : kCyan).withAlpha(120),
                 blurRadius: 16,
                 spreadRadius: 2,
               ),
@@ -427,8 +522,8 @@ class _FactorFinderScreenState extends State<FactorFinderScreen>
           ),
           child: Center(
             child: Container(
-              width: 16,
-              height: 16,
+              width: dotSize * 0.36,
+              height: dotSize * 0.36,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 color: Colors.white.withAlpha(180),
@@ -469,10 +564,11 @@ class _FactorFinderScreenState extends State<FactorFinderScreen>
   }
 
   Widget _buildProgress() {
-    final pairs = _factorPairs(_target);
-    final foundPairs = pairs.where((p) => _foundFactors.contains(p.$1)).toList();
+    final allFactors = _factors(_target);
+    final total = allFactors.length;
+    final found = _foundFactors.length;
 
-    if (foundPairs.isEmpty) {
+    if (found == 0) {
       return Text(
         'Cast spells to find factors!',
         textAlign: TextAlign.center,
@@ -480,11 +576,36 @@ class _FactorFinderScreenState extends State<FactorFinderScreen>
       );
     }
 
-    final pairTexts = foundPairs.map((p) => '${p.$1}×${p.$2}').join('  ');
-    return Text(
-      'Factors found: $pairTexts',
-      textAlign: TextAlign.center,
-      style: const TextStyle(color: kGold, fontSize: 15, fontWeight: FontWeight.w600),
+    final pairs = _factorPairs(_target);
+    final foundPairTexts = <String>[];
+    for (final p in pairs) {
+      if (_foundFactors.contains(p.$1) && _foundFactors.contains(p.$2)) {
+        foundPairTexts.add('${p.$1}×${p.$2}');
+      } else if (_foundFactors.contains(p.$1)) {
+        foundPairTexts.add('${p.$1}×?');
+      } else if (_foundFactors.contains(p.$2)) {
+        foundPairTexts.add('?×${p.$2}');
+      }
+    }
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          'Factors: $found / $total found',
+          textAlign: TextAlign.center,
+          style: const TextStyle(color: kGold, fontSize: 14, fontWeight: FontWeight.w600),
+        ),
+        if (foundPairTexts.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.only(top: 2),
+            child: Text(
+              foundPairTexts.join('  '),
+              textAlign: TextAlign.center,
+              style: TextStyle(color: kParchment.withAlpha(180), fontSize: 13),
+            ),
+          ),
+      ],
     );
   }
 
@@ -527,12 +648,7 @@ class _FactorFinderScreenState extends State<FactorFinderScreen>
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(color: borderColor, width: 2),
                   boxShadow: isActive
-                      ? [
-                          BoxShadow(
-                            color: borderColor.withAlpha(120),
-                            blurRadius: 16,
-                          )
-                        ]
+                      ? [BoxShadow(color: borderColor.withAlpha(120), blurRadius: 16)]
                       : null,
                 ),
                 child: Center(
@@ -566,16 +682,12 @@ class _FactorFinderScreenState extends State<FactorFinderScreen>
         top: y,
         child: Opacity(
           opacity: opacity,
-          child: Text(
-            p.emoji,
-            style: TextStyle(fontSize: 20 + p.size * 16),
-          ),
+          child: Text(p.emoji, style: TextStyle(fontSize: 20 + p.size * 16)),
         ),
       );
     }).toList();
 
     return [
-      // Overlay
       Positioned.fill(
         child: AnimatedOpacity(
           opacity: t < 0.8 ? 0.4 : 0.0,
@@ -583,19 +695,6 @@ class _FactorFinderScreenState extends State<FactorFinderScreen>
           child: Container(color: kBgColor),
         ),
       ),
-      // Text
-      if (t < 0.85)
-        Center(
-          child: Text(
-            '✨ All Factors Found! ✨',
-            style: GoogleFonts.cinzelDecorative(
-              fontSize: 32,
-              color: kGold,
-              fontWeight: FontWeight.bold,
-              shadows: [Shadow(color: kGold, blurRadius: 24)],
-            ),
-          ),
-        ),
       ...particles,
     ];
   }
