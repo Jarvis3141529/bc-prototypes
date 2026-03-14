@@ -32,7 +32,7 @@ dependencies:
     sdk: flutter
   cupertino_icons: ^1.0.8
   google_fonts: ^6.2.1
-  turnable_page: ^1.0.0
+  turn_page_transition: ^0.5.0
 
 dev_dependencies:
   flutter_test:

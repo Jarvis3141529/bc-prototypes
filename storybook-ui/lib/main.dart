@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:turnable_page/turnable_page.dart';
+import 'package:turn_page_transition/turn_page_transition.dart';
 
 void main() => runApp(const StorybookApp());
 
@@ -36,29 +36,34 @@ class StorybookFlow extends StatefulWidget {
 
 class _StorybookFlowState extends State<StorybookFlow> {
   int? _selectedAvatar;
-  final _controller = PageFlipController();
+  final _controller = TurnPageController(
+    duration: const Duration(milliseconds: 800),
+  );
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: TurnablePage(
+      body: TurnPageView.builder(
         controller: _controller,
-        pageCount: 5,
-        pageViewMode: PageViewMode.single,
-        paperBoundaryDecoration: PaperBoundaryDecoration.modern,
-        settings: FlipSettings(
-          drawShadow: true,
-          flippingTime: 800,
-          swipeDistance: 50.0,
-          cornerTriggerAreaSize: 0.2,
-          usePortrait: false,
-        ),
-        builder: (context, index, constraints) {
+        itemCount: 5,
+        useOnTap: true,
+        useOnSwipe: true,
+        overleafColorBuilder: (index) {
+          // Back of each page: slightly darker parchment for story pages, dark brown for cover
+          if (index == 0) return kDarkBrown;
+          return const Color(0xFFd4c4a0);
+        },
+        animationTransitionPoint: 0.4,
+        itemBuilder: (context, index) {
           switch (index) {
             case 0:
-              return BookCoverPage(
-                onTap: () => _controller.nextPage(),
-              );
+              return const BookCoverPage();
             case 1:
               return AvatarSelectionPage(
                 selectedAvatar: _selectedAvatar,
@@ -66,19 +71,25 @@ class _StorybookFlowState extends State<StorybookFlow> {
                 onNext: () => _controller.nextPage(),
               );
             case 2:
-              return StoryPage(
+              return const StoryPage(
                 text: 'Long ago, the village of Thornhaven thrived under the protection of ancient magic...',
                 dropCap: 'L',
+                pageNum: 1,
+                totalPages: 3,
               );
             case 3:
-              return StoryPage(
+              return const StoryPage(
                 text: 'But the dark wizard Bognor cast a terrible curse, scattering the sacred multiplication spells across the land...',
                 dropCap: 'B',
+                pageNum: 2,
+                totalPages: 3,
               );
             case 4:
-              return StoryPage(
+              return const StoryPage(
                 text: 'Master Aldric, the village\'s last wizard, has chosen YOU to recover the lost spells and break the curse forever.',
                 dropCap: 'M',
+                pageNum: 3,
+                totalPages: 3,
                 isLast: true,
               );
             default:
@@ -133,8 +144,7 @@ class ParchmentBackground extends StatelessWidget {
 // ─── BOOK COVER ───
 
 class BookCoverPage extends StatefulWidget {
-  final VoidCallback onTap;
-  const BookCoverPage({super.key, required this.onTap});
+  const BookCoverPage({super.key});
 
   @override
   State<BookCoverPage> createState() => _BookCoverPageState();
@@ -161,155 +171,131 @@ class _BookCoverPageState extends State<BookCoverPage>
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: widget.onTap,
-      child: Container(
-        color: kPurple,
-        child: Center(
-          child: AspectRatio(
-            aspectRatio: 0.7,
-            child: Container(
-              margin: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(8),
-                gradient: const LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    Color(0xFF6b4226),
-                    kLeatherBrown,
-                    kDarkBrown,
-                    kLeatherBrown,
-                    Color(0xFF4a2a10),
-                  ],
-                  stops: [0.0, 0.25, 0.5, 0.75, 1.0],
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withAlpha(180),
-                    blurRadius: 30,
-                    offset: const Offset(5, 10),
-                  ),
-                  const BoxShadow(
-                    color: Color(0x33d4a843),
-                    blurRadius: 2,
-                    spreadRadius: 1,
-                  ),
+    return Container(
+      color: kPurple,
+      child: Center(
+        child: AspectRatio(
+          aspectRatio: 0.7,
+          child: Container(
+            margin: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(8),
+              gradient: const LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  Color(0xFF6b4226),
+                  kLeatherBrown,
+                  kDarkBrown,
+                  kLeatherBrown,
+                  Color(0xFF4a2a10),
                 ],
+                stops: [0.0, 0.25, 0.5, 0.75, 1.0],
               ),
-              child: Stack(
-                children: [
-                  // Gold border
-                  Positioned.fill(
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withAlpha(180),
+                  blurRadius: 30,
+                  offset: const Offset(5, 10),
+                ),
+                const BoxShadow(
+                  color: Color(0x33d4a843),
+                  blurRadius: 2,
+                  spreadRadius: 1,
+                ),
+              ],
+            ),
+            child: Stack(
+              children: [
+                // Gold border
+                Positioned.fill(
+                  child: Container(
+                    margin: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(4),
+                      border: Border.all(color: kGold.withAlpha(140), width: 2),
+                    ),
                     child: Container(
-                      margin: const EdgeInsets.all(12),
+                      margin: const EdgeInsets.all(6),
                       decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(4),
-                        border: Border.all(
-                          color: kGold.withAlpha(140),
-                          width: 2,
-                        ),
-                      ),
-                      child: Container(
-                        margin: const EdgeInsets.all(6),
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(2),
-                          border: Border.all(
-                            color: kGold.withAlpha(80),
-                            width: 1,
-                          ),
-                        ),
+                        borderRadius: BorderRadius.circular(2),
+                        border: Border.all(color: kGold.withAlpha(80), width: 1),
                       ),
                     ),
                   ),
-                  // Title & content
-                  Center(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.auto_awesome, color: kGold.withAlpha(160), size: 32),
-                        const SizedBox(height: 16),
-                        AnimatedBuilder(
-                          animation: _shimmerController,
-                          builder: (context, child) {
-                            return ShaderMask(
-                              shaderCallback: (bounds) {
-                                return LinearGradient(
-                                  begin: Alignment.topLeft,
-                                  end: Alignment.bottomRight,
-                                  colors: const [
-                                    kGold,
-                                    Color(0xFFf5e6b8),
-                                    kGold,
-                                    Color(0xFFf5e6b8),
-                                    kGold,
-                                  ],
-                                  stops: [
-                                    0.0,
-                                    _shimmerController.value * 0.5,
-                                    _shimmerController.value,
-                                    _shimmerController.value * 0.5 + 0.5,
-                                    1.0,
-                                  ].map((s) => s.clamp(0.0, 1.0)).toList(),
-                                ).createShader(bounds);
-                              },
-                              child: Text(
-                                "Bognor's\nCurse",
-                                textAlign: TextAlign.center,
-                                style: GoogleFonts.cinzelDecorative(
-                                  fontSize: 36,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.white,
-                                  height: 1.3,
-                                ),
-                              ),
-                            );
-                          },
-                        ),
-                        const SizedBox(height: 12),
-                        Container(width: 80, height: 2, color: kGold.withAlpha(100)),
-                        const SizedBox(height: 12),
-                        Text(
-                          'A Multiplication Adventure',
-                          style: GoogleFonts.crimsonText(
-                            fontSize: 14,
-                            color: kGold.withAlpha(180),
-                            fontStyle: FontStyle.italic,
-                          ),
-                        ),
-                        const SizedBox(height: 40),
-                        // Clasp
-                        Container(
-                          width: 40,
-                          height: 20,
-                          decoration: BoxDecoration(
-                            color: kGold.withAlpha(60),
-                            borderRadius: BorderRadius.circular(10),
-                            border: Border.all(color: kGold.withAlpha(120), width: 1.5),
-                          ),
-                          child: Center(
-                            child: Container(
-                              width: 8, height: 8,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: kGold.withAlpha(140),
+                ),
+                Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.auto_awesome, color: kGold.withAlpha(160), size: 32),
+                      const SizedBox(height: 16),
+                      AnimatedBuilder(
+                        animation: _shimmerController,
+                        builder: (context, child) {
+                          return ShaderMask(
+                            shaderCallback: (bounds) {
+                              return LinearGradient(
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                                colors: const [kGold, Color(0xFFf5e6b8), kGold, Color(0xFFf5e6b8), kGold],
+                                stops: [
+                                  0.0,
+                                  _shimmerController.value * 0.5,
+                                  _shimmerController.value,
+                                  _shimmerController.value * 0.5 + 0.5,
+                                  1.0,
+                                ].map((s) => s.clamp(0.0, 1.0)).toList(),
+                              ).createShader(bounds);
+                            },
+                            child: Text(
+                              "Bognor's\nCurse",
+                              textAlign: TextAlign.center,
+                              style: GoogleFonts.cinzelDecorative(
+                                fontSize: 36,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                                height: 1.3,
                               ),
                             ),
+                          );
+                        },
+                      ),
+                      const SizedBox(height: 12),
+                      Container(width: 80, height: 2, color: kGold.withAlpha(100)),
+                      const SizedBox(height: 12),
+                      Text(
+                        'A Multiplication Adventure',
+                        style: GoogleFonts.crimsonText(
+                          fontSize: 14,
+                          color: kGold.withAlpha(180),
+                          fontStyle: FontStyle.italic,
+                        ),
+                      ),
+                      const SizedBox(height: 40),
+                      Container(
+                        width: 40, height: 20,
+                        decoration: BoxDecoration(
+                          color: kGold.withAlpha(60),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: kGold.withAlpha(120), width: 1.5),
+                        ),
+                        child: Center(
+                          child: Container(
+                            width: 8, height: 8,
+                            decoration: BoxDecoration(shape: BoxShape.circle, color: kGold.withAlpha(140)),
                           ),
                         ),
-                        const SizedBox(height: 24),
-                        Text(
-                          'Tap to Open',
-                          style: GoogleFonts.crimsonText(
-                            fontSize: 12,
-                            color: kGold.withAlpha(120),
-                          ),
-                        ),
-                      ],
-                    ),
+                      ),
+                      const SizedBox(height: 24),
+                      Text(
+                        'Tap or swipe to open',
+                        style: GoogleFonts.crimsonText(fontSize: 12, color: kGold.withAlpha(120)),
+                      ),
+                    ],
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
         ),
@@ -333,12 +319,8 @@ class AvatarSelectionPage extends StatelessWidget {
   });
 
   static const _wizardColors = [
-    Color(0xFF6a4c93),
-    Color(0xFF1982c4),
-    Color(0xFF8ac926),
-    Color(0xFFff595e),
+    Color(0xFF6a4c93), Color(0xFF1982c4), Color(0xFF8ac926), Color(0xFFff595e),
   ];
-
   static const _wizardNames = ['Elara', 'Thornwick', 'Ivy', 'Bramble'];
 
   @override
@@ -353,9 +335,7 @@ class AvatarSelectionPage extends StatelessWidget {
               Text(
                 'Choose Your Wizard',
                 style: GoogleFonts.cinzelDecorative(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: kDarkBrown,
+                  fontSize: 24, fontWeight: FontWeight.bold, color: kDarkBrown,
                 ),
               ),
               const SizedBox(height: 8),
@@ -392,10 +372,7 @@ class AvatarSelectionPage extends StatelessWidget {
                               child: Center(
                                 child: Container(
                                   width: 64, height: 64,
-                                  decoration: BoxDecoration(
-                                    shape: BoxShape.circle,
-                                    color: _wizardColors[i],
-                                  ),
+                                  decoration: BoxDecoration(shape: BoxShape.circle, color: _wizardColors[i]),
                                   child: const Icon(Icons.auto_awesome, color: Colors.white, size: 28),
                                 ),
                               ),
@@ -405,8 +382,7 @@ class AvatarSelectionPage extends StatelessWidget {
                           Text(
                             _wizardNames[i],
                             style: GoogleFonts.cinzel(
-                              fontSize: 14,
-                              color: kDarkBrown,
+                              fontSize: 14, color: kDarkBrown,
                               fontWeight: selected ? FontWeight.bold : FontWeight.normal,
                             ),
                           ),
@@ -445,12 +421,16 @@ class AvatarSelectionPage extends StatelessWidget {
 class StoryPage extends StatelessWidget {
   final String text;
   final String dropCap;
+  final int pageNum;
+  final int totalPages;
   final bool isLast;
 
   const StoryPage({
     super.key,
     required this.text,
     required this.dropCap,
+    required this.pageNum,
+    required this.totalPages,
     this.isLast = false,
   });
 
@@ -463,7 +443,6 @@ class StoryPage extends StatelessWidget {
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 40),
           child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
             children: [
               const Spacer(flex: 3),
               RichText(
@@ -473,18 +452,13 @@ class StoryPage extends StatelessWidget {
                     TextSpan(
                       text: dropCap,
                       style: GoogleFonts.cinzelDecorative(
-                        fontSize: 64,
-                        fontWeight: FontWeight.bold,
-                        color: kDarkBrown,
-                        height: 0.9,
+                        fontSize: 64, fontWeight: FontWeight.bold, color: kDarkBrown, height: 0.9,
                       ),
                     ),
                     TextSpan(
                       text: bodyText,
                       style: GoogleFonts.ebGaramond(
-                        fontSize: 20,
-                        color: kDarkBrown.withAlpha(220),
-                        height: 1.7,
+                        fontSize: 20, color: kDarkBrown.withAlpha(220), height: 1.7,
                       ),
                     ),
                   ],
@@ -522,13 +496,17 @@ class StoryPage extends StatelessWidget {
                 ),
               if (!isLast)
                 Text(
-                  'Drag to turn page →',
+                  'Tap or swipe to turn page',
                   style: GoogleFonts.crimsonText(
-                    fontSize: 12,
-                    color: kDarkBrown.withAlpha(100),
-                    fontStyle: FontStyle.italic,
+                    fontSize: 12, color: kDarkBrown.withAlpha(100), fontStyle: FontStyle.italic,
                   ),
                 ),
+              const SizedBox(height: 8),
+              // Page number
+              Text(
+                '$pageNum / $totalPages',
+                style: GoogleFonts.crimsonText(fontSize: 11, color: kDarkBrown.withAlpha(80)),
+              ),
               const SizedBox(height: 16),
             ],
           ),
