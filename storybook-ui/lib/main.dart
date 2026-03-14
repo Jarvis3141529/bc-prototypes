@@ -1,4 +1,3 @@
-import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:turn_page_transition/turn_page_transition.dart';
@@ -121,23 +120,51 @@ class _StorybookFlowState extends State<StorybookFlow>
               onNext: () {},
             ),
 
-          // Book cover with 3D opening animation
+          // Book spine shadow (appears as cover slides away)
+          if (!_coverOpen)
+            AnimatedBuilder(
+              animation: _coverAnimation,
+              builder: (context, child) {
+                final progress = _coverAnimation.value;
+                if (progress < 0.01) return const SizedBox();
+                return Positioned.fill(
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: Opacity(
+                      opacity: (progress * 2).clamp(0.0, 1.0),
+                      child: Container(
+                        width: 20,
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [
+                              Colors.black.withAlpha((180 * (1.0 - progress * 0.5)).round()),
+                              Colors.black.withAlpha((60 * (1.0 - progress * 0.5)).round()),
+                              Colors.transparent,
+                            ],
+                            stops: const [0.0, 0.5, 1.0],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
+
+          // Book cover — slides left to reveal pages (spine split)
           if (!_coverOpen)
             AnimatedBuilder(
               animation: _coverAnimation,
               builder: (context, child) {
                 final progress = _coverAnimation.value;
                 if (progress >= 0.99) return const SizedBox();
+                final screenWidth = MediaQuery.of(context).size.width;
                 
-                return Transform(
-                  alignment: Alignment.centerLeft,
-                  transform: Matrix4.identity()
-                    ..setEntry(3, 2, -0.0015) // flipped perspective
-                    ..rotateY(progress * math.pi * 0.45), // flipped rotation
+                return Transform.translate(
+                  offset: Offset(-screenWidth * progress, 0),
                   child: GestureDetector(
                     onTap: _openBook,
                     onHorizontalDragEnd: (details) {
-                      // Swipe left to open
                       if ((details.primaryVelocity ?? 0) < -100) _openBook();
                     },
                     child: const BookCoverContent(),
