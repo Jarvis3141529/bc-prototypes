@@ -1,0 +1,676 @@
+import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'dart:math' as math;
+
+void main() => runApp(const StorybookApp());
+
+// Colors
+const kPurple = Color(0xFF1a0a2e);
+const kGold = Color(0xFFd4a843);
+const kParchment = Color(0xFFf4e4c1);
+const kLeatherBrown = Color(0xFF5c3a1e);
+const kDarkBrown = Color(0xFF2d1810);
+
+class StorybookApp extends StatelessWidget {
+  const StorybookApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: "Bognor's Curse",
+      debugShowCheckedModeBanner: false,
+      theme: ThemeData.dark().copyWith(
+        scaffoldBackgroundColor: kPurple,
+      ),
+      home: const StorybookFlow(),
+    );
+  }
+}
+
+class StorybookFlow extends StatefulWidget {
+  const StorybookFlow({super.key});
+
+  @override
+  State<StorybookFlow> createState() => _StorybookFlowState();
+}
+
+class _StorybookFlowState extends State<StorybookFlow>
+    with TickerProviderStateMixin {
+  int _currentPage = 0;
+  int? _selectedAvatar;
+  bool _isAnimating = false;
+  late AnimationController _pageAnimController;
+  late Animation<double> _pageAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _pageAnimController = AnimationController(
+      duration: const Duration(milliseconds: 600),
+      vsync: this,
+    );
+    _pageAnimation = CurvedAnimation(
+      parent: _pageAnimController,
+      curve: Curves.easeInOut,
+    );
+  }
+
+  @override
+  void dispose() {
+    _pageAnimController.dispose();
+    super.dispose();
+  }
+
+  void _goToPage(int page) {
+    if (_isAnimating || page == _currentPage || page < 0 || page > 4) return;
+    setState(() => _isAnimating = true);
+    _pageAnimController.forward(from: 0).then((_) {
+      setState(() {
+        _currentPage = page;
+        _isAnimating = false;
+      });
+    });
+  }
+
+  void _nextPage() => _goToPage(_currentPage + 1);
+  void _prevPage() => _goToPage(_currentPage - 1);
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: AnimatedBuilder(
+        animation: _pageAnimation,
+        builder: (context, child) {
+          // Show current page, with fade+slide on transition
+          final progress = _pageAnimation.value;
+          if (!_isAnimating || progress == 0) {
+            return _buildPage(_currentPage);
+          }
+          // Cross-fade with slide
+          final nextPage = _currentPage < 4 ? _currentPage + 1 : _currentPage;
+          return Stack(
+            children: [
+              // Next page underneath
+              _buildPage(nextPage),
+              // Current page sliding away with shadow
+              Transform(
+                alignment: Alignment.centerRight,
+                transform: Matrix4.identity()
+                  ..setEntry(3, 2, 0.001)
+                  ..rotateY(-progress * math.pi / 4),
+                child: Opacity(
+                  opacity: 1.0 - progress * 0.5,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withAlpha((progress * 128).toInt()),
+                          blurRadius: 30 * progress,
+                          offset: Offset(-10 * progress, 0),
+                        ),
+                      ],
+                    ),
+                    child: _buildPage(_currentPage),
+                  ),
+                ),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildPage(int index) {
+    switch (index) {
+      case 0:
+        return BookCoverPage(onTap: _nextPage);
+      case 1:
+        return AvatarSelectionPage(
+          selectedAvatar: _selectedAvatar,
+          onSelectAvatar: (i) => setState(() => _selectedAvatar = i),
+          onNext: _nextPage,
+          onBack: _prevPage,
+        );
+      case 2:
+        return StoryPage(
+          text: 'Long ago, the village of Thornhaven thrived under the protection of ancient magic...',
+          dropCap: 'L',
+          onNext: _nextPage,
+          onBack: _prevPage,
+        );
+      case 3:
+        return StoryPage(
+          text: 'But the dark wizard Bognor cast a terrible curse, scattering the sacred multiplication spells across the land...',
+          dropCap: 'B',
+          onNext: _nextPage,
+          onBack: _prevPage,
+        );
+      case 4:
+        return StoryPage(
+          text: 'Master Aldric, the village\'s last wizard, has chosen YOU to recover the lost spells and break the curse forever.',
+          dropCap: 'M',
+          onBack: _prevPage,
+          isLast: true,
+        );
+      default:
+        return const SizedBox();
+    }
+  }
+}
+
+// ─── PARCHMENT BACKGROUND ───
+
+class ParchmentBackground extends StatelessWidget {
+  final Widget child;
+  const ParchmentBackground({super.key, required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: const BoxDecoration(
+        gradient: RadialGradient(
+          center: Alignment.center,
+          radius: 1.2,
+          colors: [kParchment, Color(0xFFe8d4a8), Color(0xFFc9b08a)],
+          stops: [0.0, 0.7, 1.0],
+        ),
+      ),
+      child: Stack(
+        children: [
+          // Vignette
+          Positioned.fill(
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: RadialGradient(
+                  colors: [
+                    Colors.transparent,
+                    Colors.brown.withAlpha(40),
+                    Colors.brown.withAlpha(100),
+                  ],
+                  stops: const [0.5, 0.8, 1.0],
+                ),
+              ),
+            ),
+          ),
+          child,
+        ],
+      ),
+    );
+  }
+}
+
+// ─── BOOK COVER ───
+
+class BookCoverPage extends StatefulWidget {
+  final VoidCallback onTap;
+  const BookCoverPage({super.key, required this.onTap});
+
+  @override
+  State<BookCoverPage> createState() => _BookCoverPageState();
+}
+
+class _BookCoverPageState extends State<BookCoverPage>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _shimmerController;
+
+  @override
+  void initState() {
+    super.initState();
+    _shimmerController = AnimationController(
+      duration: const Duration(seconds: 3),
+      vsync: this,
+    )..repeat();
+  }
+
+  @override
+  void dispose() {
+    _shimmerController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: widget.onTap,
+      child: Container(
+        color: kPurple,
+        child: Center(
+          child: AspectRatio(
+            aspectRatio: 0.7,
+            child: Container(
+              margin: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(8),
+                gradient: const LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    Color(0xFF6b4226),
+                    kLeatherBrown,
+                    kDarkBrown,
+                    kLeatherBrown,
+                    Color(0xFF4a2a10),
+                  ],
+                  stops: [0.0, 0.25, 0.5, 0.75, 1.0],
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withAlpha(180),
+                    blurRadius: 30,
+                    offset: const Offset(5, 10),
+                  ),
+                  const BoxShadow(
+                    color: Color(0x33d4a843),
+                    blurRadius: 2,
+                    spreadRadius: 1,
+                  ),
+                ],
+              ),
+              child: Stack(
+                children: [
+                  // Gold border
+                  Positioned.fill(
+                    child: Container(
+                      margin: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(4),
+                        border: Border.all(
+                          color: kGold.withAlpha(140),
+                          width: 2,
+                        ),
+                      ),
+                      child: Container(
+                        margin: const EdgeInsets.all(6),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(2),
+                          border: Border.all(
+                            color: kGold.withAlpha(80),
+                            width: 1,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  // Title & content
+                  Center(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        // Decorative top element
+                        Icon(Icons.auto_awesome, color: kGold.withAlpha(160), size: 32),
+                        const SizedBox(height: 16),
+                        // Title with shimmer
+                        AnimatedBuilder(
+                          animation: _shimmerController,
+                          builder: (context, child) {
+                            return ShaderMask(
+                              shaderCallback: (bounds) {
+                                return LinearGradient(
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
+                                  colors: const [
+                                    kGold,
+                                    Color(0xFFf5e6b8),
+                                    kGold,
+                                    Color(0xFFf5e6b8),
+                                    kGold,
+                                  ],
+                                  stops: [
+                                    0.0,
+                                    _shimmerController.value * 0.5,
+                                    _shimmerController.value,
+                                    _shimmerController.value * 0.5 + 0.5,
+                                    1.0,
+                                  ].map((s) => s.clamp(0.0, 1.0)).toList(),
+                                ).createShader(bounds);
+                              },
+                              child: Text(
+                                "Bognor's\nCurse",
+                                textAlign: TextAlign.center,
+                                style: GoogleFonts.cinzelDecorative(
+                                  fontSize: 36,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
+                                  height: 1.3,
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                        const SizedBox(height: 12),
+                        Container(
+                          width: 80,
+                          height: 2,
+                          color: kGold.withAlpha(100),
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          'A Multiplication Adventure',
+                          style: GoogleFonts.crimsonText(
+                            fontSize: 14,
+                            color: kGold.withAlpha(180),
+                            fontStyle: FontStyle.italic,
+                          ),
+                        ),
+                        const SizedBox(height: 40),
+                        // Clasp
+                        Container(
+                          width: 40,
+                          height: 20,
+                          decoration: BoxDecoration(
+                            color: kGold.withAlpha(60),
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(color: kGold.withAlpha(120), width: 1.5),
+                          ),
+                          child: Center(
+                            child: Container(
+                              width: 8,
+                              height: 8,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: kGold.withAlpha(140),
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+                        Text(
+                          'Tap to Open',
+                          style: GoogleFonts.crimsonText(
+                            fontSize: 12,
+                            color: kGold.withAlpha(120),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ─── AVATAR SELECTION ───
+
+class AvatarSelectionPage extends StatelessWidget {
+  final int? selectedAvatar;
+  final ValueChanged<int> onSelectAvatar;
+  final VoidCallback onNext;
+  final VoidCallback onBack;
+
+  const AvatarSelectionPage({
+    super.key,
+    required this.selectedAvatar,
+    required this.onSelectAvatar,
+    required this.onNext,
+    required this.onBack,
+  });
+
+  static const _wizardColors = [
+    Color(0xFF6a4c93),
+    Color(0xFF1982c4),
+    Color(0xFF8ac926),
+    Color(0xFFff595e),
+  ];
+
+  static const _wizardNames = [
+    'Elara',
+    'Thornwick',
+    'Ivy',
+    'Bramble',
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTapUp: (details) {
+        final w = MediaQuery.of(context).size.width;
+        if (details.globalPosition.dx < w * 0.15) onBack();
+      },
+      child: ParchmentBackground(
+        child: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24),
+            child: Column(
+              children: [
+                const SizedBox(height: 32),
+                Text(
+                  'Choose Your Wizard',
+                  style: GoogleFonts.cinzelDecorative(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    color: kDarkBrown,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Container(width: 60, height: 2, color: kGold),
+                const SizedBox(height: 32),
+                Expanded(
+                  child: GridView.count(
+                    crossAxisCount: 2,
+                    mainAxisSpacing: 20,
+                    crossAxisSpacing: 20,
+                    childAspectRatio: 0.75,
+                    shrinkWrap: true,
+                    children: List.generate(4, (i) {
+                      final selected = selectedAvatar == i;
+                      return GestureDetector(
+                        onTap: () => onSelectAvatar(i),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Expanded(
+                              child: AnimatedContainer(
+                                duration: const Duration(milliseconds: 300),
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(
+                                    color: selected ? kGold : kGold.withAlpha(80),
+                                    width: selected ? 3 : 2,
+                                  ),
+                                  boxShadow: selected
+                                      ? [
+                                          BoxShadow(
+                                            color: kGold.withAlpha(100),
+                                            blurRadius: 16,
+                                            spreadRadius: 2,
+                                          )
+                                        ]
+                                      : [],
+                                  color: kParchment.withAlpha(200),
+                                ),
+                                child: Center(
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Container(
+                                        width: 64,
+                                        height: 64,
+                                        decoration: BoxDecoration(
+                                          shape: BoxShape.circle,
+                                          color: _wizardColors[i],
+                                        ),
+                                        child: const Icon(
+                                          Icons.auto_awesome,
+                                          color: Colors.white,
+                                          size: 28,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              _wizardNames[i],
+                              style: GoogleFonts.cinzel(
+                                fontSize: 14,
+                                color: kDarkBrown,
+                                fontWeight: selected ? FontWeight.bold : FontWeight.normal,
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    }),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                if (selectedAvatar != null)
+                  ElevatedButton(
+                    onPressed: onNext,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: kDarkBrown,
+                      foregroundColor: kGold,
+                      padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        side: const BorderSide(color: kGold, width: 1),
+                      ),
+                    ),
+                    child: Text(
+                      'Begin Your Journey',
+                      style: GoogleFonts.cinzel(fontSize: 16),
+                    ),
+                  ),
+                const SizedBox(height: 24),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ─── STORY PAGE ───
+
+class StoryPage extends StatelessWidget {
+  final String text;
+  final String dropCap;
+  final VoidCallback? onNext;
+  final VoidCallback? onBack;
+  final bool isLast;
+
+  const StoryPage({
+    super.key,
+    required this.text,
+    required this.dropCap,
+    this.onNext,
+    this.onBack,
+    this.isLast = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    // Text without the first character (drop cap)
+    final bodyText = text.substring(1);
+    final screenWidth = MediaQuery.of(context).size.width;
+
+    return GestureDetector(
+      onTapUp: (details) {
+        final x = details.globalPosition.dx;
+        if (x > screenWidth * 0.6 && onNext != null) {
+          onNext!();
+        } else if (x < screenWidth * 0.3 && onBack != null) {
+          onBack!();
+        }
+      },
+      child: ParchmentBackground(
+        child: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 40),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Spacer(),
+                // Drop cap + text
+                RichText(
+                  textAlign: TextAlign.left,
+                  text: TextSpan(
+                    children: [
+                      TextSpan(
+                        text: dropCap,
+                        style: GoogleFonts.cinzelDecorative(
+                          fontSize: 64,
+                          fontWeight: FontWeight.bold,
+                          color: kDarkBrown,
+                          height: 0.9,
+                        ),
+                      ),
+                      TextSpan(
+                        text: bodyText,
+                        style: GoogleFonts.ebGaramond(
+                          fontSize: 20,
+                          color: kDarkBrown.withAlpha(220),
+                          height: 1.7,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const Spacer(),
+                if (isLast)
+                  ElevatedButton(
+                    onPressed: () {
+                      // Show a simple dialog since this is just a prototype
+                      showDialog(
+                        context: context,
+                        builder: (ctx) => AlertDialog(
+                          backgroundColor: kParchment,
+                          title: Text(
+                            'Your Training Begins!',
+                            style: GoogleFonts.cinzel(color: kDarkBrown),
+                          ),
+                          content: Text(
+                            'This is where the game would begin...',
+                            style: GoogleFonts.ebGaramond(color: kDarkBrown, fontSize: 16),
+                          ),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.pop(ctx),
+                              child: Text('OK', style: TextStyle(color: kDarkBrown)),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: kDarkBrown,
+                      foregroundColor: kGold,
+                      padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        side: const BorderSide(color: kGold, width: 1),
+                      ),
+                    ),
+                    child: Text(
+                      'Begin Training',
+                      style: GoogleFonts.cinzel(fontSize: 16),
+                    ),
+                  ),
+                if (!isLast)
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Icon(Icons.chevron_left, color: kDarkBrown.withAlpha(80)),
+                      Icon(Icons.chevron_right, color: kDarkBrown.withAlpha(80)),
+                    ],
+                  ),
+                const SizedBox(height: 16),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// no-op
