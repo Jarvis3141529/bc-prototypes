@@ -34,69 +34,138 @@ class StorybookFlow extends StatefulWidget {
   State<StorybookFlow> createState() => _StorybookFlowState();
 }
 
-class _StorybookFlowState extends State<StorybookFlow> {
+class _StorybookFlowState extends State<StorybookFlow>
+    with SingleTickerProviderStateMixin {
   int? _selectedAvatar;
+  bool _coverOpen = false;
+  late AnimationController _coverController;
+  late Animation<double> _coverAnimation;
   final _controller = TurnPageController(
     duration: const Duration(milliseconds: 800),
   );
 
   @override
+  void initState() {
+    super.initState();
+    _coverController = AnimationController(
+      duration: const Duration(milliseconds: 1200),
+      vsync: this,
+    );
+    _coverAnimation = CurvedAnimation(
+      parent: _coverController,
+      curve: Curves.easeInOutCubic,
+    );
+    _coverController.addStatusListener((status) {
+      if (status == AnimationStatus.completed) {
+        setState(() => _coverOpen = true);
+      }
+    });
+  }
+
+  @override
   void dispose() {
+    _coverController.dispose();
     _controller.dispose();
     super.dispose();
+  }
+
+  void _openCover() {
+    if (!_coverOpen && !_coverController.isAnimating) {
+      _coverController.forward();
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: TurnPageView.builder(
-        controller: _controller,
-        itemCount: 5,
-        useOnTap: true,
-        useOnSwipe: true,
-        overleafColorBuilder: (index) {
-          // Back of each page: slightly darker parchment for story pages, dark brown for cover
-          if (index == 0) return kDarkBrown;
-          return const Color(0xFFd4c4a0);
-        },
-        animationTransitionPoint: 0.4,
-        itemBuilder: (context, index) {
-          switch (index) {
-            case 0:
-              return const BookCoverPage();
-            case 1:
-              return AvatarSelectionPage(
-                selectedAvatar: _selectedAvatar,
-                onSelectAvatar: (i) => setState(() => _selectedAvatar = i),
-                onNext: () => _controller.nextPage(),
-              );
-            case 2:
-              return const StoryPage(
-                text: 'Long ago, the village of Thornhaven thrived under the protection of ancient magic...',
-                dropCap: 'L',
-                pageNum: 1,
-                totalPages: 3,
-              );
-            case 3:
-              return const StoryPage(
-                text: 'But the dark wizard Bognor cast a terrible curse, scattering the sacred multiplication spells across the land...',
-                dropCap: 'B',
-                pageNum: 2,
-                totalPages: 3,
-              );
-            case 4:
-              return const StoryPage(
-                text: 'Master Aldric, the village\'s last wizard, has chosen YOU to recover the lost spells and break the curse forever.',
-                dropCap: 'M',
-                pageNum: 3,
-                totalPages: 3,
-                isLast: true,
-              );
-            default:
-              return const SizedBox();
-          }
-        },
-      ),
+      body: _coverOpen
+          ? TurnPageView.builder(
+              controller: _controller,
+              itemCount: 4,
+              useOnTap: true,
+              useOnSwipe: true,
+              overleafColorBuilder: (index) => const Color(0xFFd4c4a0),
+              animationTransitionPoint: 0.4,
+              itemBuilder: (context, index) {
+                switch (index) {
+                  case 0:
+                    return AvatarSelectionPage(
+                      selectedAvatar: _selectedAvatar,
+                      onSelectAvatar: (i) =>
+                          setState(() => _selectedAvatar = i),
+                      onNext: () => _controller.nextPage(),
+                    );
+                  case 1:
+                    return const StoryPage(
+                      text:
+                          'Long ago, the village of Thornhaven thrived under the protection of ancient magic...',
+                      dropCap: 'L',
+                      pageNum: 1,
+                      totalPages: 3,
+                    );
+                  case 2:
+                    return const StoryPage(
+                      text:
+                          'But the dark wizard Bognor cast a terrible curse, scattering the sacred multiplication spells across the land...',
+                      dropCap: 'B',
+                      pageNum: 2,
+                      totalPages: 3,
+                    );
+                  case 3:
+                    return const StoryPage(
+                      text:
+                          'Master Aldric, the village\'s last wizard, has chosen YOU to recover the lost spells and break the curse forever.',
+                      dropCap: 'M',
+                      pageNum: 3,
+                      totalPages: 3,
+                      isLast: true,
+                    );
+                  default:
+                    return const SizedBox();
+                }
+              },
+            )
+          : Stack(
+              children: [
+                // First page revealed underneath as cover opens
+                AvatarSelectionPage(
+                  selectedAvatar: _selectedAvatar,
+                  onSelectAvatar: (i) =>
+                      setState(() => _selectedAvatar = i),
+                  onNext: () {
+                    setState(() => _coverOpen = true);
+                    _controller.nextPage();
+                  },
+                ),
+                // Stiff cover with 3D rotation
+                AnimatedBuilder(
+                  animation: _coverAnimation,
+                  builder: (context, child) {
+                    final angle = _coverAnimation.value * 3.14159265;
+                    // Hide once fully rotated past 90°
+                    if (_coverAnimation.value > 0.5) {
+                      return const SizedBox.shrink();
+                    }
+                    return GestureDetector(
+                      onTap: _openCover,
+                      onHorizontalDragEnd: (details) {
+                        if ((details.primaryVelocity ?? 0) < -50) {
+                          _openCover();
+                        }
+                      },
+                      child: Transform(
+                        alignment: Alignment.centerLeft,
+                        transform: Matrix4.identity()
+                          ..setEntry(3, 2, 0.0015) // perspective
+                          ..rotateY(-angle),
+                        child: child,
+                      ),
+                    );
+                  },
+                  child: const BookCoverPage(),
+                ),
+              ],
+            ),
     );
   }
 }
