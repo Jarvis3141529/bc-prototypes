@@ -96,52 +96,55 @@ class _StorybookFlowState extends State<StorybookFlow>
           final turningPage = _currentPage;
           
           if (_goingForward) {
-            // Forward: current page slides left, revealing next page underneath
-            // Next page peeks in from the right with a slight offset
+            // Forward: current page slides left toward viewer (scales up slightly)
+            // Next page sits underneath, revealed as current slides away
             final slideOut = -screenWidth * progress;
-            final slideIn = screenWidth * 0.3 * (1.0 - progress);
+            // Slight scale-up: page "comes toward" viewer as it turns
+            final scale = 1.0 + progress * 0.05;
             
             return Stack(
               children: [
-                // Next page: starts slightly offset right, settles to center
-                Transform.translate(
-                  offset: Offset(slideIn, 0),
-                  child: _buildPage(revealedPage),
-                ),
-                // Current page: slides left with a shadow on its right edge
-                Transform.translate(
-                  offset: Offset(slideOut, 0),
-                  child: Stack(
-                    children: [
-                      _buildPage(turningPage),
-                      // Shadow on the trailing (right) edge — simulates page depth
-                      Positioned(
-                        right: 0,
-                        top: 0,
-                        bottom: 0,
-                        width: 60,
-                        child: DecoratedBox(
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              begin: Alignment.centerLeft,
-                              end: Alignment.centerRight,
-                              colors: [
-                                Colors.transparent,
-                                Colors.black.withAlpha((progress * 80).toInt()),
-                              ],
+                // Next page: stationary underneath, fully visible
+                _buildPage(revealedPage),
+                // Current page: slides left, scales up slightly, fully opaque
+                ClipRect(
+                  child: Transform(
+                    alignment: Alignment.center,
+                    transform: Matrix4.identity()
+                      ..translate(slideOut, 0.0)
+                      ..scale(scale),
+                    child: Stack(
+                      children: [
+                        _buildPage(turningPage),
+                        // Shadow on the trailing (right) edge
+                        Positioned(
+                          right: 0,
+                          top: 0,
+                          bottom: 0,
+                          width: 80,
+                          child: DecoratedBox(
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                begin: Alignment.centerLeft,
+                                end: Alignment.centerRight,
+                                colors: [
+                                  Colors.transparent,
+                                  Colors.black.withAlpha((progress * 120).toInt()),
+                                ],
+                              ),
                             ),
                           ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
-                // Shadow cast onto the revealed page from the turning page's edge
+                // Shadow cast onto the revealed page
                 Positioned(
-                  left: screenWidth * (1.0 - progress) - 30,
+                  left: (screenWidth * (1.0 - progress) - 40).clamp(0.0, screenWidth),
                   top: 0,
                   bottom: 0,
-                  width: 30,
+                  width: 40,
                   child: IgnorePointer(
                     child: DecoratedBox(
                       decoration: BoxDecoration(
@@ -149,7 +152,7 @@ class _StorybookFlowState extends State<StorybookFlow>
                           begin: Alignment.centerLeft,
                           end: Alignment.centerRight,
                           colors: [
-                            Colors.black.withAlpha((60 * (1.0 - progress)).toInt()),
+                            Colors.black.withAlpha((90 * (1.0 - progress)).toInt()),
                             Colors.transparent,
                           ],
                         ),
@@ -160,51 +163,53 @@ class _StorybookFlowState extends State<StorybookFlow>
               ],
             );
           } else {
-            // Backward: target page slides in from left
+            // Backward: previous page slides in from left (scales down to settle)
             final slideIn = -screenWidth * (1.0 - progress);
-            final slideOut = screenWidth * 0.3 * progress;
+            final scale = 1.0 + (1.0 - progress) * 0.05;
             
             return Stack(
               children: [
-                // Current page shifts slightly right
-                Transform.translate(
-                  offset: Offset(slideOut, 0),
-                  child: _buildPage(turningPage),
-                ),
-                // Previous page slides in from left
-                Transform.translate(
-                  offset: Offset(slideIn, 0),
-                  child: Stack(
-                    children: [
-                      _buildPage(revealedPage),
-                      // Shadow on trailing edge
-                      Positioned(
-                        right: 0,
-                        top: 0,
-                        bottom: 0,
-                        width: 60,
-                        child: DecoratedBox(
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              begin: Alignment.centerLeft,
-                              end: Alignment.centerRight,
-                              colors: [
-                                Colors.transparent,
-                                Colors.black.withAlpha(((1.0 - progress) * 80).toInt()),
-                              ],
+                // Current page: stationary underneath
+                _buildPage(turningPage),
+                // Previous page: slides in from left, fully opaque
+                ClipRect(
+                  child: Transform(
+                    alignment: Alignment.center,
+                    transform: Matrix4.identity()
+                      ..translate(slideIn, 0.0)
+                      ..scale(scale),
+                    child: Stack(
+                      children: [
+                        _buildPage(revealedPage),
+                        // Shadow on trailing edge
+                        Positioned(
+                          right: 0,
+                          top: 0,
+                          bottom: 0,
+                          width: 80,
+                          child: DecoratedBox(
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                begin: Alignment.centerLeft,
+                                end: Alignment.centerRight,
+                                colors: [
+                                  Colors.transparent,
+                                  Colors.black.withAlpha(((1.0 - progress) * 120).toInt()),
+                                ],
+                              ),
                             ),
                           ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
                 // Edge shadow
                 Positioned(
-                  left: screenWidth * progress - 30,
+                  left: (screenWidth * progress - 40).clamp(0.0, screenWidth),
                   top: 0,
                   bottom: 0,
-                  width: 30,
+                  width: 40,
                   child: IgnorePointer(
                     child: DecoratedBox(
                       decoration: BoxDecoration(
@@ -212,7 +217,7 @@ class _StorybookFlowState extends State<StorybookFlow>
                           begin: Alignment.centerLeft,
                           end: Alignment.centerRight,
                           colors: [
-                            Colors.black.withAlpha((60 * progress).toInt()),
+                            Colors.black.withAlpha((90 * progress).toInt()),
                             Colors.transparent,
                           ],
                         ),
