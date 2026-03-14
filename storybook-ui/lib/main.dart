@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:turn_page_transition/turn_page_transition.dart';
@@ -19,9 +20,7 @@ class StorybookApp extends StatelessWidget {
     return MaterialApp(
       title: "Bognor's Curse",
       debugShowCheckedModeBanner: false,
-      theme: ThemeData.dark().copyWith(
-        scaffoldBackgroundColor: kPurple,
-      ),
+      theme: ThemeData.dark().copyWith(scaffoldBackgroundColor: kPurple),
       home: const StorybookFlow(),
     );
   }
@@ -35,14 +34,12 @@ class StorybookFlow extends StatefulWidget {
 }
 
 class _StorybookFlowState extends State<StorybookFlow>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   int? _selectedAvatar;
   bool _coverOpen = false;
   late AnimationController _coverController;
   late Animation<double> _coverAnimation;
-  final _controller = TurnPageController(
-    duration: const Duration(milliseconds: 800),
-  );
+  late TurnPageController _pageController;
 
   @override
   void initState() {
@@ -55,171 +52,115 @@ class _StorybookFlowState extends State<StorybookFlow>
       parent: _coverController,
       curve: Curves.easeInOutCubic,
     );
-    _coverController.addStatusListener((status) {
-      if (status == AnimationStatus.completed) {
-        setState(() => _coverOpen = true);
-      }
-    });
+    _pageController = TurnPageController(
+      duration: const Duration(milliseconds: 800),
+    );
   }
 
   @override
   void dispose() {
     _coverController.dispose();
-    _controller.dispose();
+    _pageController.dispose();
     super.dispose();
   }
 
-  void _openCover() {
-    if (!_coverOpen && !_coverController.isAnimating) {
-      _coverController.forward();
-    }
+  void _openBook() {
+    if (_coverOpen) return;
+    _coverController.forward().then((_) {
+      setState(() => _coverOpen = true);
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: _coverOpen
-          ? TurnPageView.builder(
-              controller: _controller,
+      body: Stack(
+        children: [
+          // Inner pages (behind cover)
+          if (_coverOpen)
+            TurnPageView.builder(
+              controller: _pageController,
               itemCount: 4,
               useOnTap: true,
               useOnSwipe: true,
-              overleafColorBuilder: (index) => const Color(0xFFd4c4a0),
+              overleafColorBuilder: (_) => const Color(0xFFd4c4a0),
               animationTransitionPoint: 0.4,
               itemBuilder: (context, index) {
                 switch (index) {
                   case 0:
                     return AvatarSelectionPage(
                       selectedAvatar: _selectedAvatar,
-                      onSelectAvatar: (i) =>
-                          setState(() => _selectedAvatar = i),
-                      onNext: () => _controller.nextPage(),
+                      onSelectAvatar: (i) => setState(() => _selectedAvatar = i),
+                      onNext: () => _pageController.nextPage(),
                     );
                   case 1:
                     return const StoryPage(
-                      text:
-                          'Long ago, the village of Thornhaven thrived under the protection of ancient magic...',
-                      dropCap: 'L',
-                      pageNum: 1,
-                      totalPages: 3,
+                      text: 'Long ago, the village of Thornhaven thrived under the protection of ancient magic...',
+                      dropCap: 'L', pageNum: 1, totalPages: 3,
                     );
                   case 2:
                     return const StoryPage(
-                      text:
-                          'But the dark wizard Bognor cast a terrible curse, scattering the sacred multiplication spells across the land...',
-                      dropCap: 'B',
-                      pageNum: 2,
-                      totalPages: 3,
+                      text: 'But the dark wizard Bognor cast a terrible curse, scattering the sacred multiplication spells across the land...',
+                      dropCap: 'B', pageNum: 2, totalPages: 3,
                     );
                   case 3:
                     return const StoryPage(
-                      text:
-                          'Master Aldric, the village\'s last wizard, has chosen YOU to recover the lost spells and break the curse forever.',
-                      dropCap: 'M',
-                      pageNum: 3,
-                      totalPages: 3,
-                      isLast: true,
+                      text: 'Master Aldric, the village\'s last wizard, has chosen YOU to recover the lost spells and break the curse forever.',
+                      dropCap: 'M', pageNum: 3, totalPages: 3, isLast: true,
                     );
                   default:
                     return const SizedBox();
                 }
               },
             )
-          : Stack(
-              children: [
-                // First page revealed underneath as cover opens
-                AvatarSelectionPage(
-                  selectedAvatar: _selectedAvatar,
-                  onSelectAvatar: (i) =>
-                      setState(() => _selectedAvatar = i),
-                  onNext: () {
-                    setState(() => _coverOpen = true);
-                    _controller.nextPage();
-                  },
-                ),
-                // Stiff cover with 3D rotation
-                AnimatedBuilder(
-                  animation: _coverAnimation,
-                  builder: (context, child) {
-                    final angle = _coverAnimation.value * 3.14159265;
-                    // Hide once fully rotated past 90°
-                    if (_coverAnimation.value > 0.5) {
-                      return const SizedBox.shrink();
-                    }
-                    return GestureDetector(
-                      onTap: _openCover,
-                      onHorizontalDragEnd: (details) {
-                        if ((details.primaryVelocity ?? 0) < -50) {
-                          _openCover();
-                        }
-                      },
-                      child: Transform(
-                        alignment: Alignment.centerLeft,
-                        transform: Matrix4.identity()
-                          ..setEntry(3, 2, 0.0015) // perspective
-                          ..rotateY(-angle),
-                        child: child,
-                      ),
-                    );
-                  },
-                  child: const BookCoverPage(),
-                ),
-              ],
+          else
+            // Static first page visible behind the opening cover
+            AvatarSelectionPage(
+              selectedAvatar: _selectedAvatar,
+              onSelectAvatar: (i) => setState(() => _selectedAvatar = i),
+              onNext: () {},
             ),
-    );
-  }
-}
 
-// ─── PARCHMENT BACKGROUND ───
-
-class ParchmentBackground extends StatelessWidget {
-  final Widget child;
-  const ParchmentBackground({super.key, required this.child});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: const BoxDecoration(
-        gradient: RadialGradient(
-          center: Alignment.center,
-          radius: 1.2,
-          colors: [kParchment, Color(0xFFe8d4a8), Color(0xFFc9b08a)],
-          stops: [0.0, 0.7, 1.0],
-        ),
-      ),
-      child: Stack(
-        children: [
-          Positioned.fill(
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: RadialGradient(
-                  colors: [
-                    Colors.transparent,
-                    Colors.brown.withAlpha(40),
-                    Colors.brown.withAlpha(100),
-                  ],
-                  stops: const [0.5, 0.8, 1.0],
-                ),
-              ),
+          // Book cover with 3D opening animation
+          if (!_coverOpen)
+            AnimatedBuilder(
+              animation: _coverAnimation,
+              builder: (context, child) {
+                final progress = _coverAnimation.value;
+                if (progress >= 0.99) return const SizedBox();
+                
+                return Transform(
+                  alignment: Alignment.centerLeft,
+                  transform: Matrix4.identity()
+                    ..setEntry(3, 2, 0.001) // positive perspective: closer = bigger
+                    ..rotateY(-progress * math.pi * 0.4), // negative: right edge toward viewer
+                  child: GestureDetector(
+                    onTap: _openBook,
+                    onHorizontalDragEnd: (details) {
+                      // Swipe left to open
+                      if ((details.primaryVelocity ?? 0) < -100) _openBook();
+                    },
+                    child: const BookCoverContent(),
+                  ),
+                );
+              },
             ),
-          ),
-          child,
         ],
       ),
     );
   }
 }
 
-// ─── BOOK COVER ───
+// ─── BOOK COVER CONTENT ───
 
-class BookCoverPage extends StatefulWidget {
-  const BookCoverPage({super.key});
+class BookCoverContent extends StatefulWidget {
+  const BookCoverContent({super.key});
 
   @override
-  State<BookCoverPage> createState() => _BookCoverPageState();
+  State<BookCoverContent> createState() => _BookCoverContentState();
 }
 
-class _BookCoverPageState extends State<BookCoverPage>
+class _BookCoverContentState extends State<BookCoverContent>
     with SingleTickerProviderStateMixin {
   late AnimationController _shimmerController;
 
@@ -252,31 +193,16 @@ class _BookCoverPageState extends State<BookCoverPage>
               gradient: const LinearGradient(
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
-                colors: [
-                  Color(0xFF6b4226),
-                  kLeatherBrown,
-                  kDarkBrown,
-                  kLeatherBrown,
-                  Color(0xFF4a2a10),
-                ],
+                colors: [Color(0xFF6b4226), kLeatherBrown, kDarkBrown, kLeatherBrown, Color(0xFF4a2a10)],
                 stops: [0.0, 0.25, 0.5, 0.75, 1.0],
               ),
               boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withAlpha(180),
-                  blurRadius: 30,
-                  offset: const Offset(5, 10),
-                ),
-                const BoxShadow(
-                  color: Color(0x33d4a843),
-                  blurRadius: 2,
-                  spreadRadius: 1,
-                ),
+                BoxShadow(color: Colors.black.withAlpha(180), blurRadius: 30, offset: const Offset(5, 10)),
+                const BoxShadow(color: Color(0x33d4a843), blurRadius: 2, spreadRadius: 1),
               ],
             ),
             child: Stack(
               children: [
-                // Gold border
                 Positioned.fill(
                   child: Container(
                     margin: const EdgeInsets.all(12),
@@ -308,23 +234,16 @@ class _BookCoverPageState extends State<BookCoverPage>
                                 begin: Alignment.topLeft,
                                 end: Alignment.bottomRight,
                                 colors: const [kGold, Color(0xFFf5e6b8), kGold, Color(0xFFf5e6b8), kGold],
-                                stops: [
-                                  0.0,
-                                  _shimmerController.value * 0.5,
-                                  _shimmerController.value,
-                                  _shimmerController.value * 0.5 + 0.5,
-                                  1.0,
-                                ].map((s) => s.clamp(0.0, 1.0)).toList(),
+                                stops: [0.0, _shimmerController.value * 0.5, _shimmerController.value,
+                                  _shimmerController.value * 0.5 + 0.5, 1.0]
+                                    .map((s) => s.clamp(0.0, 1.0)).toList(),
                               ).createShader(bounds);
                             },
                             child: Text(
                               "Bognor's\nCurse",
                               textAlign: TextAlign.center,
                               style: GoogleFonts.cinzelDecorative(
-                                fontSize: 36,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white,
-                                height: 1.3,
+                                fontSize: 36, fontWeight: FontWeight.bold, color: Colors.white, height: 1.3,
                               ),
                             ),
                           );
@@ -335,32 +254,23 @@ class _BookCoverPageState extends State<BookCoverPage>
                       const SizedBox(height: 12),
                       Text(
                         'A Multiplication Adventure',
-                        style: GoogleFonts.crimsonText(
-                          fontSize: 14,
-                          color: kGold.withAlpha(180),
-                          fontStyle: FontStyle.italic,
-                        ),
+                        style: GoogleFonts.crimsonText(fontSize: 14, color: kGold.withAlpha(180), fontStyle: FontStyle.italic),
                       ),
                       const SizedBox(height: 40),
                       Container(
                         width: 40, height: 20,
                         decoration: BoxDecoration(
-                          color: kGold.withAlpha(60),
-                          borderRadius: BorderRadius.circular(10),
+                          color: kGold.withAlpha(60), borderRadius: BorderRadius.circular(10),
                           border: Border.all(color: kGold.withAlpha(120), width: 1.5),
                         ),
                         child: Center(
-                          child: Container(
-                            width: 8, height: 8,
-                            decoration: BoxDecoration(shape: BoxShape.circle, color: kGold.withAlpha(140)),
-                          ),
+                          child: Container(width: 8, height: 8,
+                            decoration: BoxDecoration(shape: BoxShape.circle, color: kGold.withAlpha(140))),
                         ),
                       ),
                       const SizedBox(height: 24),
-                      Text(
-                        'Tap or swipe to open',
-                        style: GoogleFonts.crimsonText(fontSize: 12, color: kGold.withAlpha(120)),
-                      ),
+                      Text('Tap or swipe to open',
+                        style: GoogleFonts.crimsonText(fontSize: 12, color: kGold.withAlpha(120))),
                     ],
                   ),
                 ),
@@ -368,6 +278,41 @@ class _BookCoverPageState extends State<BookCoverPage>
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+// ─── PARCHMENT BACKGROUND ───
+
+class ParchmentBackground extends StatelessWidget {
+  final Widget child;
+  const ParchmentBackground({super.key, required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: const BoxDecoration(
+        gradient: RadialGradient(
+          center: Alignment.center, radius: 1.2,
+          colors: [kParchment, Color(0xFFe8d4a8), Color(0xFFc9b08a)],
+          stops: [0.0, 0.7, 1.0],
+        ),
+      ),
+      child: Stack(
+        children: [
+          Positioned.fill(
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: RadialGradient(
+                  colors: [Colors.transparent, Colors.brown.withAlpha(40), Colors.brown.withAlpha(100)],
+                  stops: const [0.5, 0.8, 1.0],
+                ),
+              ),
+            ),
+          ),
+          child,
+        ],
       ),
     );
   }
@@ -381,15 +326,10 @@ class AvatarSelectionPage extends StatelessWidget {
   final VoidCallback onNext;
 
   const AvatarSelectionPage({
-    super.key,
-    required this.selectedAvatar,
-    required this.onSelectAvatar,
-    required this.onNext,
+    super.key, required this.selectedAvatar, required this.onSelectAvatar, required this.onNext,
   });
 
-  static const _wizardColors = [
-    Color(0xFF6a4c93), Color(0xFF1982c4), Color(0xFF8ac926), Color(0xFFff595e),
-  ];
+  static const _wizardColors = [Color(0xFF6a4c93), Color(0xFF1982c4), Color(0xFF8ac926), Color(0xFFff595e)];
   static const _wizardNames = ['Elara', 'Thornwick', 'Ivy', 'Bramble'];
 
   @override
@@ -401,22 +341,15 @@ class AvatarSelectionPage extends StatelessWidget {
           child: Column(
             children: [
               const SizedBox(height: 32),
-              Text(
-                'Choose Your Wizard',
-                style: GoogleFonts.cinzelDecorative(
-                  fontSize: 24, fontWeight: FontWeight.bold, color: kDarkBrown,
-                ),
-              ),
+              Text('Choose Your Wizard',
+                style: GoogleFonts.cinzelDecorative(fontSize: 24, fontWeight: FontWeight.bold, color: kDarkBrown)),
               const SizedBox(height: 8),
               Container(width: 60, height: 2, color: kGold),
               const SizedBox(height: 32),
               Expanded(
                 child: GridView.count(
-                  crossAxisCount: 2,
-                  mainAxisSpacing: 20,
-                  crossAxisSpacing: 20,
-                  childAspectRatio: 0.75,
-                  shrinkWrap: true,
+                  crossAxisCount: 2, mainAxisSpacing: 20, crossAxisSpacing: 20,
+                  childAspectRatio: 0.75, shrinkWrap: true,
                   children: List.generate(4, (i) {
                     final selected = selectedAvatar == i;
                     return GestureDetector(
@@ -429,32 +362,21 @@ class AvatarSelectionPage extends StatelessWidget {
                               duration: const Duration(milliseconds: 300),
                               decoration: BoxDecoration(
                                 borderRadius: BorderRadius.circular(12),
-                                border: Border.all(
-                                  color: selected ? kGold : kGold.withAlpha(80),
-                                  width: selected ? 3 : 2,
-                                ),
-                                boxShadow: selected
-                                    ? [BoxShadow(color: kGold.withAlpha(100), blurRadius: 16, spreadRadius: 2)]
-                                    : [],
+                                border: Border.all(color: selected ? kGold : kGold.withAlpha(80), width: selected ? 3 : 2),
+                                boxShadow: selected ? [BoxShadow(color: kGold.withAlpha(100), blurRadius: 16, spreadRadius: 2)] : [],
                                 color: kParchment.withAlpha(200),
                               ),
                               child: Center(
-                                child: Container(
-                                  width: 64, height: 64,
+                                child: Container(width: 64, height: 64,
                                   decoration: BoxDecoration(shape: BoxShape.circle, color: _wizardColors[i]),
-                                  child: const Icon(Icons.auto_awesome, color: Colors.white, size: 28),
-                                ),
+                                  child: const Icon(Icons.auto_awesome, color: Colors.white, size: 28)),
                               ),
                             ),
                           ),
                           const SizedBox(height: 8),
-                          Text(
-                            _wizardNames[i],
-                            style: GoogleFonts.cinzel(
-                              fontSize: 14, color: kDarkBrown,
-                              fontWeight: selected ? FontWeight.bold : FontWeight.normal,
-                            ),
-                          ),
+                          Text(_wizardNames[i],
+                            style: GoogleFonts.cinzel(fontSize: 14, color: kDarkBrown,
+                              fontWeight: selected ? FontWeight.bold : FontWeight.normal)),
                         ],
                       ),
                     );
@@ -466,13 +388,9 @@ class AvatarSelectionPage extends StatelessWidget {
                 ElevatedButton(
                   onPressed: onNext,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: kDarkBrown,
-                    foregroundColor: kGold,
+                    backgroundColor: kDarkBrown, foregroundColor: kGold,
                     padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      side: const BorderSide(color: kGold, width: 1),
-                    ),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8), side: const BorderSide(color: kGold, width: 1)),
                   ),
                   child: Text('Begin Your Journey', style: GoogleFonts.cinzel(fontSize: 16)),
                 ),
@@ -495,18 +413,13 @@ class StoryPage extends StatelessWidget {
   final bool isLast;
 
   const StoryPage({
-    super.key,
-    required this.text,
-    required this.dropCap,
-    required this.pageNum,
-    required this.totalPages,
-    this.isLast = false,
+    super.key, required this.text, required this.dropCap,
+    required this.pageNum, required this.totalPages, this.isLast = false,
   });
 
   @override
   Widget build(BuildContext context) {
     final bodyText = text.substring(1);
-
     return ParchmentBackground(
       child: SafeArea(
         child: Padding(
@@ -516,66 +429,37 @@ class StoryPage extends StatelessWidget {
               const Spacer(flex: 3),
               RichText(
                 textAlign: TextAlign.left,
-                text: TextSpan(
-                  children: [
-                    TextSpan(
-                      text: dropCap,
-                      style: GoogleFonts.cinzelDecorative(
-                        fontSize: 64, fontWeight: FontWeight.bold, color: kDarkBrown, height: 0.9,
-                      ),
-                    ),
-                    TextSpan(
-                      text: bodyText,
-                      style: GoogleFonts.ebGaramond(
-                        fontSize: 20, color: kDarkBrown.withAlpha(220), height: 1.7,
-                      ),
-                    ),
-                  ],
-                ),
+                text: TextSpan(children: [
+                  TextSpan(text: dropCap,
+                    style: GoogleFonts.cinzelDecorative(fontSize: 64, fontWeight: FontWeight.bold, color: kDarkBrown, height: 0.9)),
+                  TextSpan(text: bodyText,
+                    style: GoogleFonts.ebGaramond(fontSize: 20, color: kDarkBrown.withAlpha(220), height: 1.7)),
+                ]),
               ),
               const Spacer(flex: 2),
               if (isLast)
                 ElevatedButton(
                   onPressed: () {
-                    showDialog(
-                      context: context,
-                      builder: (ctx) => AlertDialog(
-                        backgroundColor: kParchment,
-                        title: Text('Your Training Begins!', style: GoogleFonts.cinzel(color: kDarkBrown)),
-                        content: Text('This is where the game would begin...', style: GoogleFonts.ebGaramond(color: kDarkBrown, fontSize: 16)),
-                        actions: [
-                          TextButton(
-                            onPressed: () => Navigator.pop(ctx),
-                            child: Text('OK', style: TextStyle(color: kDarkBrown)),
-                          ),
-                        ],
-                      ),
-                    );
+                    showDialog(context: context, builder: (ctx) => AlertDialog(
+                      backgroundColor: kParchment,
+                      title: Text('Your Training Begins!', style: GoogleFonts.cinzel(color: kDarkBrown)),
+                      content: Text('This is where the game would begin...', style: GoogleFonts.ebGaramond(color: kDarkBrown, fontSize: 16)),
+                      actions: [TextButton(onPressed: () => Navigator.pop(ctx), child: Text('OK', style: TextStyle(color: kDarkBrown)))],
+                    ));
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: kDarkBrown,
-                    foregroundColor: kGold,
+                    backgroundColor: kDarkBrown, foregroundColor: kGold,
                     padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      side: const BorderSide(color: kGold, width: 1),
-                    ),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8), side: const BorderSide(color: kGold, width: 1)),
                   ),
                   child: Text('Begin Training', style: GoogleFonts.cinzel(fontSize: 16)),
                 ),
               if (!isLast)
-                Text(
-                  'Tap or swipe to turn page',
-                  style: GoogleFonts.crimsonText(
-                    fontSize: 12, color: kDarkBrown.withAlpha(100), fontStyle: FontStyle.italic,
-                  ),
-                ),
+                Text('Tap or swipe to turn page',
+                  style: GoogleFonts.crimsonText(fontSize: 12, color: kDarkBrown.withAlpha(100), fontStyle: FontStyle.italic)),
               const SizedBox(height: 8),
-              // Page number
-              Text(
-                '$pageNum / $totalPages',
-                style: GoogleFonts.crimsonText(fontSize: 11, color: kDarkBrown.withAlpha(80)),
-              ),
+              Text('$pageNum / $totalPages',
+                style: GoogleFonts.crimsonText(fontSize: 11, color: kDarkBrown.withAlpha(80))),
               const SizedBox(height: 16),
             ],
           ),
