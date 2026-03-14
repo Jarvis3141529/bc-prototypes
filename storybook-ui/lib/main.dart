@@ -95,15 +95,15 @@ class _StorybookFlowState extends State<StorybookFlow>
           final turningPage = _currentPage;
           
           if (_goingForward) {
-            // Forward: current page curls from right edge toward left (like turning a real page)
+            // Forward: page lifts from right edge toward viewer, pivoting on left spine
             return Stack(
               children: [
                 _buildPage(revealedPage),
                 Transform(
                   alignment: Alignment.centerLeft,
                   transform: Matrix4.identity()
-                    ..setEntry(3, 2, 0.0008)
-                    ..rotateY(-progress * math.pi / 2.5),
+                    ..setEntry(3, 2, -0.0008)
+                    ..rotateY(progress * math.pi / 2.5),
                   child: Opacity(
                     opacity: (1.0 - progress * 0.8).clamp(0.0, 1.0),
                     child: Container(
@@ -123,15 +123,15 @@ class _StorybookFlowState extends State<StorybookFlow>
               ],
             );
           } else {
-            // Backward: target page flips in from left (page turning back)
+            // Backward: page flips back from left toward viewer, pivoting on right spine
             return Stack(
               children: [
                 _buildPage(turningPage),
                 Transform(
                   alignment: Alignment.centerRight,
                   transform: Matrix4.identity()
-                    ..setEntry(3, 2, 0.0008)
-                    ..rotateY((1.0 - progress) * math.pi / 2.5),
+                    ..setEntry(3, 2, -0.0008)
+                    ..rotateY(-(1.0 - progress) * math.pi / 2.5),
                   child: Opacity(
                     opacity: (progress * 1.25).clamp(0.0, 1.0),
                     child: Container(
