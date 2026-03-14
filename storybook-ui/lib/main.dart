@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:turn_page_transition/turn_page_transition.dart';
@@ -120,67 +121,31 @@ class _StorybookFlowState extends State<StorybookFlow>
               onNext: () {},
             ),
 
-          // Book cover — 2.5D foreshortening open (width shrinks + vertical skew)
+          // Book cover — 3D perspective open toward viewer
           if (!_coverOpen)
             AnimatedBuilder(
               animation: _coverAnimation,
               builder: (context, child) {
                 final progress = _coverAnimation.value;
-                if (progress >= 0.99) return const SizedBox();
+                // Fade out at 65% progress so we never see extreme angles
+                final opacity = (1.0 - progress * 1.5).clamp(0.0, 1.0);
+                if (opacity <= 0) return const SizedBox();
                 
-                // Cover shrinks from full width to 0, anchored at left spine
-                // Vertical skew creates the illusion of perspective foreshortening
-                final widthFraction = 1.0 - progress; // 1.0 → 0.0
-                final skewY = progress * 0.15; // slight vertical skew, top tilts right
-                // Shadow intensifies as cover opens, cast on the page beneath
-                final shadowOpacity = (progress * 0.6).clamp(0.0, 0.6);
-                
-                return Stack(
-                  children: [
-                    // Shadow on the page beneath the cover edge
-                    if (progress > 0.01)
-                      Positioned(
-                        left: 0,
-                        top: 0,
-                        bottom: 0,
-                        width: MediaQuery.of(context).size.width * widthFraction + 12,
-                        child: Align(
-                          alignment: Alignment.centerRight,
-                          child: Container(
-                            width: 20,
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                colors: [
-                                  Colors.transparent,
-                                  Colors.black.withAlpha((shadowOpacity * 255).round()),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    // The cover itself
-                    Align(
-                      alignment: Alignment.centerLeft,
-                      child: SizedBox(
-                        width: MediaQuery.of(context).size.width * widthFraction,
-                        height: double.infinity,
-                        child: Transform(
-                          alignment: Alignment.centerLeft,
-                          transform: Matrix4.skewY(skewY),
-                          child: ClipRect(
-                            child: GestureDetector(
-                              onTap: _openBook,
-                              onHorizontalDragEnd: (details) {
-                                if ((details.primaryVelocity ?? 0) < -100) _openBook();
-                              },
-                              child: const BookCoverContent(),
-                            ),
-                          ),
-                        ),
-                      ),
+                return Opacity(
+                  opacity: opacity,
+                  child: Transform(
+                    alignment: Alignment.centerLeft,
+                    transform: Matrix4.identity()
+                      ..setEntry(3, 2, -0.0012)
+                      ..rotateY(progress * math.pi * 0.35),
+                    child: GestureDetector(
+                      onTap: _openBook,
+                      onHorizontalDragEnd: (details) {
+                        if ((details.primaryVelocity ?? 0) < -100) _openBook();
+                      },
+                      child: const BookCoverContent(),
                     ),
-                  ],
+                  ),
                 );
               },
             ),
