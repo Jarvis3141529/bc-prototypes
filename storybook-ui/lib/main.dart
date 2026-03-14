@@ -46,7 +46,7 @@ class _StorybookFlowState extends State<StorybookFlow>
   void initState() {
     super.initState();
     _pageAnimController = AnimationController(
-      duration: const Duration(milliseconds: 600),
+      duration: const Duration(milliseconds: 900),
       vsync: this,
     );
     _pageAnimation = CurvedAnimation(
@@ -61,12 +61,17 @@ class _StorybookFlowState extends State<StorybookFlow>
     super.dispose();
   }
 
+  int _targetPage = 0;
+  bool _goingForward = true;
+
   void _goToPage(int page) {
     if (_isAnimating || page == _currentPage || page < 0 || page > 4) return;
+    _goingForward = page > _currentPage;
+    _targetPage = page;
     setState(() => _isAnimating = true);
     _pageAnimController.forward(from: 0).then((_) {
       setState(() {
-        _currentPage = page;
+        _currentPage = _targetPage;
         _isAnimating = false;
       });
     });
@@ -81,41 +86,71 @@ class _StorybookFlowState extends State<StorybookFlow>
       body: AnimatedBuilder(
         animation: _pageAnimation,
         builder: (context, child) {
-          // Show current page, with fade+slide on transition
           final progress = _pageAnimation.value;
           if (!_isAnimating || progress == 0) {
             return _buildPage(_currentPage);
           }
-          // Cross-fade with slide
-          final nextPage = _currentPage < 4 ? _currentPage + 1 : _currentPage;
-          return Stack(
-            children: [
-              // Next page underneath
-              _buildPage(nextPage),
-              // Current page sliding away with shadow
-              Transform(
-                alignment: Alignment.centerRight,
-                transform: Matrix4.identity()
-                  ..setEntry(3, 2, 0.001)
-                  ..rotateY(-progress * math.pi / 4),
-                child: Opacity(
-                  opacity: 1.0 - progress * 0.5,
-                  child: Container(
-                    decoration: BoxDecoration(
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withAlpha((progress * 128).toInt()),
-                          blurRadius: 30 * progress,
-                          offset: Offset(-10 * progress, 0),
-                        ),
-                      ],
+          // Page being turned away, reveal page underneath
+          final revealedPage = _targetPage;
+          final turningPage = _currentPage;
+          
+          if (_goingForward) {
+            // Forward: current page curls from right edge toward left (like turning a real page)
+            return Stack(
+              children: [
+                _buildPage(revealedPage),
+                Transform(
+                  alignment: Alignment.centerLeft,
+                  transform: Matrix4.identity()
+                    ..setEntry(3, 2, 0.0008)
+                    ..rotateY(-progress * math.pi / 2.5),
+                  child: Opacity(
+                    opacity: (1.0 - progress * 0.8).clamp(0.0, 1.0),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withAlpha((progress * 100).toInt()),
+                            blurRadius: 40 * progress,
+                            offset: Offset(10 * progress, 0),
+                          ),
+                        ],
+                      ),
+                      child: _buildPage(turningPage),
                     ),
-                    child: _buildPage(_currentPage),
                   ),
                 ),
-              ),
-            ],
-          );
+              ],
+            );
+          } else {
+            // Backward: target page flips in from left (page turning back)
+            return Stack(
+              children: [
+                _buildPage(turningPage),
+                Transform(
+                  alignment: Alignment.centerRight,
+                  transform: Matrix4.identity()
+                    ..setEntry(3, 2, 0.0008)
+                    ..rotateY((1.0 - progress) * math.pi / 2.5),
+                  child: Opacity(
+                    opacity: (progress * 1.25).clamp(0.0, 1.0),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withAlpha(((1.0 - progress) * 100).toInt()),
+                            blurRadius: 40 * (1.0 - progress),
+                            offset: Offset(-10 * (1.0 - progress), 0),
+                          ),
+                        ],
+                      ),
+                      child: _buildPage(revealedPage),
+                    ),
+                  ),
+                ),
+              ],
+            );
+          }
         },
       ),
     );
