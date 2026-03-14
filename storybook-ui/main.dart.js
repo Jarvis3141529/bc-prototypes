@@ -63025,8 +63025,8 @@ if(s>=0.99)return B.vA
 d=new Float64Array(16)
 r=new A.aO(d)
 r.dR()
-d[11]=0.001
-q=-s*3.141592653589793*0.4
+d[11]=-0.0015
+q=s*3.141592653589793*0.45
 p=Math.cos(q)
 o=Math.sin(q)
 q=d[0]

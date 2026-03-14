@@ -132,8 +132,8 @@ class _StorybookFlowState extends State<StorybookFlow>
                 return Transform(
                   alignment: Alignment.centerLeft,
                   transform: Matrix4.identity()
-                    ..setEntry(3, 2, 0.001) // positive perspective: closer = bigger
-                    ..rotateY(-progress * math.pi * 0.4), // negative: right edge toward viewer
+                    ..setEntry(3, 2, -0.0015) // flipped perspective
+                    ..rotateY(progress * math.pi * 0.45), // flipped rotation
                   child: GestureDetector(
                     onTap: _openBook,
                     onHorizontalDragEnd: (details) {
