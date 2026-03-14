@@ -36,120 +36,66 @@ class StorybookFlow extends StatefulWidget {
 class _StorybookFlowState extends State<StorybookFlow>
     with TickerProviderStateMixin {
   int? _selectedAvatar;
-  bool _coverOpen = false;
-  late AnimationController _coverController;
-  late Animation<double> _coverAnimation;
   late TurnPageController _pageController;
 
   @override
   void initState() {
     super.initState();
-    _coverController = AnimationController(
-      duration: const Duration(milliseconds: 1200),
-      vsync: this,
-    );
-    _coverAnimation = CurvedAnimation(
-      parent: _coverController,
-      curve: Curves.easeInOutCubic,
-    );
     _pageController = TurnPageController(
-      duration: const Duration(milliseconds: 800),
+      duration: const Duration(milliseconds: 1000),
     );
   }
 
   @override
   void dispose() {
-    _coverController.dispose();
     _pageController.dispose();
     super.dispose();
-  }
-
-  void _openBook() {
-    if (_coverOpen) return;
-    _coverController.forward().then((_) {
-      setState(() => _coverOpen = true);
-    });
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Stack(
-        children: [
-          // Inner pages (behind cover)
-          if (_coverOpen)
-            TurnPageView.builder(
-              controller: _pageController,
-              itemCount: 4,
-              useOnTap: true,
-              useOnSwipe: true,
-              overleafColorBuilder: (_) => const Color(0xFFd4c4a0),
-              animationTransitionPoint: 0.4,
-              itemBuilder: (context, index) {
-                switch (index) {
-                  case 0:
-                    return AvatarSelectionPage(
-                      selectedAvatar: _selectedAvatar,
-                      onSelectAvatar: (i) => setState(() => _selectedAvatar = i),
-                      onNext: () => _pageController.nextPage(),
-                    );
-                  case 1:
-                    return const StoryPage(
-                      text: 'Long ago, the village of Thornhaven thrived under the protection of ancient magic...',
-                      dropCap: 'L', pageNum: 1, totalPages: 3,
-                    );
-                  case 2:
-                    return const StoryPage(
-                      text: 'But the dark wizard Bognor cast a terrible curse, scattering the sacred multiplication spells across the land...',
-                      dropCap: 'B', pageNum: 2, totalPages: 3,
-                    );
-                  case 3:
-                    return const StoryPage(
-                      text: 'Master Aldric, the village\'s last wizard, has chosen YOU to recover the lost spells and break the curse forever.',
-                      dropCap: 'M', pageNum: 3, totalPages: 3, isLast: true,
-                    );
-                  default:
-                    return const SizedBox();
-                }
-              },
-            )
-          else
-            // Static first page visible behind the opening cover
-            AvatarSelectionPage(
-              selectedAvatar: _selectedAvatar,
-              onSelectAvatar: (i) => setState(() => _selectedAvatar = i),
-              onNext: () {},
-            ),
-
-          // Book cover — 3D perspective open toward viewer
-          if (!_coverOpen)
-            AnimatedBuilder(
-              animation: _coverAnimation,
-              builder: (context, child) {
-                final progress = _coverAnimation.value;
-                // Fade out at 65% progress so we never see extreme angles
-                final opacity = (1.0 - progress * 1.5).clamp(0.0, 1.0);
-                if (opacity <= 0) return const SizedBox();
-                
-                return Opacity(
-                  opacity: opacity,
-                  child: Transform(
-                    alignment: Alignment.centerLeft,
-                    transform: Matrix4.identity()
-                      ..setEntry(3, 2, -0.0012)
-                      ..rotateY(progress * math.pi * 0.35),
-                    child: GestureDetector(
-                      onTap: _openBook,
-                      onHorizontalDragEnd: (details) {
-                        if ((details.primaryVelocity ?? 0) < -100) _openBook();
-                      },
-                      child: const BookCoverContent(),
-                    ),
-                  ),
-                );
-              },
-            ),
-        ],
+      body: TurnPageView.builder(
+        controller: _pageController,
+        itemCount: 5,
+        useOnTap: true,
+        useOnSwipe: true,
+        overleafColorBuilder: (index) {
+          // Back of cover page = dark leather brown
+          if (index == 0) return const Color(0xFF3a2010);
+          // Back of inner pages = aged parchment
+          return const Color(0xFFd4c4a0);
+        },
+        animationTransitionPoint: 0.5,
+        itemBuilder: (context, index) {
+          switch (index) {
+            case 0:
+              return const BookCoverContent();
+            case 1:
+              return AvatarSelectionPage(
+                selectedAvatar: _selectedAvatar,
+                onSelectAvatar: (i) => setState(() => _selectedAvatar = i),
+                onNext: () => _pageController.nextPage(),
+              );
+            case 2:
+              return const StoryPage(
+                text: 'Long ago, the village of Thornhaven thrived under the protection of ancient magic...',
+                dropCap: 'L', pageNum: 1, totalPages: 3,
+              );
+            case 3:
+              return const StoryPage(
+                text: 'But the dark wizard Bognor cast a terrible curse, scattering the sacred multiplication spells across the land...',
+                dropCap: 'B', pageNum: 2, totalPages: 3,
+              );
+            case 4:
+              return const StoryPage(
+                text: 'Master Aldric, the village\'s last wizard, has chosen YOU to recover the lost spells and break the curse forever.',
+                dropCap: 'M', pageNum: 3, totalPages: 3, isLast: true,
+              );
+            default:
+              return const SizedBox();
+          }
+        },
       ),
     );
   }
