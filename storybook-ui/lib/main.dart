@@ -36,66 +36,132 @@ class StorybookFlow extends StatefulWidget {
 class _StorybookFlowState extends State<StorybookFlow>
     with TickerProviderStateMixin {
   int? _selectedAvatar;
+  bool _coverDone = false;
+  late AnimationController _coverController;
+  late Animation<double> _coverAnimation;
   late TurnPageController _pageController;
 
   @override
   void initState() {
     super.initState();
+    _coverController = AnimationController(
+      duration: const Duration(milliseconds: 1200),
+      vsync: this,
+    );
+    _coverAnimation = CurvedAnimation(
+      parent: _coverController,
+      curve: Curves.easeInOutCubic,
+    );
     _pageController = TurnPageController(
-      duration: const Duration(milliseconds: 1000),
+      duration: const Duration(milliseconds: 800),
     );
   }
 
   @override
   void dispose() {
+    _coverController.dispose();
     _pageController.dispose();
     super.dispose();
+  }
+
+  void _openCover() {
+    if (_coverDone) return;
+    _coverController.forward().then((_) {
+      setState(() => _coverDone = true);
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: TurnPageView.builder(
-        controller: _pageController,
-        itemCount: 5,
-        useOnTap: true,
-        useOnSwipe: true,
-        overleafColorBuilder: (index) {
-          // Back of cover page = dark leather brown
-          if (index == 0) return const Color(0xFF3a2010);
-          // Back of inner pages = aged parchment
-          return const Color(0xFFd4c4a0);
-        },
-        animationTransitionPoint: 0.5,
-        itemBuilder: (context, index) {
-          switch (index) {
-            case 0:
-              return const BookCoverContent();
-            case 1:
-              return AvatarSelectionPage(
-                selectedAvatar: _selectedAvatar,
-                onSelectAvatar: (i) => setState(() => _selectedAvatar = i),
-                onNext: () => _pageController.nextPage(),
-              );
-            case 2:
-              return const StoryPage(
-                text: 'Long ago, the village of Thornhaven thrived under the protection of ancient magic...',
-                dropCap: 'L', pageNum: 1, totalPages: 3,
-              );
-            case 3:
-              return const StoryPage(
-                text: 'But the dark wizard Bognor cast a terrible curse, scattering the sacred multiplication spells across the land...',
-                dropCap: 'B', pageNum: 2, totalPages: 3,
-              );
-            case 4:
-              return const StoryPage(
-                text: 'Master Aldric, the village\'s last wizard, has chosen YOU to recover the lost spells and break the curse forever.',
-                dropCap: 'M', pageNum: 3, totalPages: 3, isLast: true,
-              );
-            default:
-              return const SizedBox();
-          }
-        },
+      body: Stack(
+        children: [
+          // Pages behind the cover — use turn_page_transition for inner pages
+          if (_coverDone)
+            TurnPageView.builder(
+              controller: _pageController,
+              itemCount: 4,
+              useOnTap: true,
+              useOnSwipe: true,
+              overleafColorBuilder: (_) => const Color(0xFFd4c4a0),
+              animationTransitionPoint: 0.5,
+              itemBuilder: (context, index) {
+                switch (index) {
+                  case 0:
+                    return AvatarSelectionPage(
+                      selectedAvatar: _selectedAvatar,
+                      onSelectAvatar: (i) => setState(() => _selectedAvatar = i),
+                      onNext: () => _pageController.nextPage(),
+                    );
+                  case 1:
+                    return const StoryPage(
+                      text: 'Long ago, the village of Thornhaven thrived under the protection of ancient magic...',
+                      dropCap: 'L', pageNum: 1, totalPages: 3,
+                    );
+                  case 2:
+                    return const StoryPage(
+                      text: 'But the dark wizard Bognor cast a terrible curse, scattering the sacred multiplication spells across the land...',
+                      dropCap: 'B', pageNum: 2, totalPages: 3,
+                    );
+                  case 3:
+                    return const StoryPage(
+                      text: 'Master Aldric, the village\'s last wizard, has chosen YOU to recover the lost spells and break the curse forever.',
+                      dropCap: 'M', pageNum: 3, totalPages: 3, isLast: true,
+                    );
+                  default:
+                    return const SizedBox();
+                }
+              },
+            )
+          else
+            AvatarSelectionPage(
+              selectedAvatar: _selectedAvatar,
+              onSelectAvatar: (i) => setState(() => _selectedAvatar = i),
+              onNext: () {},
+            ),
+
+          // Rigid book cover — opens like a stiff door hinged on left spine
+          if (!_coverDone)
+            AnimatedBuilder(
+              animation: _coverAnimation,
+              builder: (context, child) {
+                final progress = _coverAnimation.value;
+                if (progress >= 1.0) return const SizedBox();
+                
+                // The cover opens from 0 to 90 degrees
+                // Right edge comes TOWARD viewer
+                final angle = progress * math.pi * 0.5; // 0 to 90°
+                
+                return Stack(
+                  children: [
+                    // Back of cover (dark leather) — visible as cover opens
+                    // This is a simple colored panel that shows behind the rotating front
+                    Transform(
+                      alignment: Alignment.centerLeft,
+                      transform: Matrix4.identity()
+                        ..setEntry(3, 2, 0.001)
+                        ..rotateY(angle - 0.01), // slightly less than front
+                      child: Container(color: const Color(0xFF2a1508)),
+                    ),
+                    // Front of cover — rotates toward viewer
+                    Transform(
+                      alignment: Alignment.centerLeft,
+                      transform: Matrix4.identity()
+                        ..setEntry(3, 2, 0.001)
+                        ..rotateY(angle),
+                      child: GestureDetector(
+                        onTap: _openCover,
+                        onHorizontalDragEnd: (details) {
+                          if ((details.primaryVelocity ?? 0) < -100) _openCover();
+                        },
+                        child: const BookCoverContent(),
+                      ),
+                    ),
+                  ],
+                );
+              },
+            ),
+        ],
       ),
     );
   }
