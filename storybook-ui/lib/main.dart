@@ -120,55 +120,67 @@ class _StorybookFlowState extends State<StorybookFlow>
               onNext: () {},
             ),
 
-          // Book spine shadow (appears as cover slides away)
-          if (!_coverOpen)
-            AnimatedBuilder(
-              animation: _coverAnimation,
-              builder: (context, child) {
-                final progress = _coverAnimation.value;
-                if (progress < 0.01) return const SizedBox();
-                return Positioned.fill(
-                  child: Align(
-                    alignment: Alignment.centerLeft,
-                    child: Opacity(
-                      opacity: (progress * 2).clamp(0.0, 1.0),
-                      child: Container(
-                        width: 20,
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: [
-                              Colors.black.withAlpha((180 * (1.0 - progress * 0.5)).round()),
-                              Colors.black.withAlpha((60 * (1.0 - progress * 0.5)).round()),
-                              Colors.transparent,
-                            ],
-                            stops: const [0.0, 0.5, 1.0],
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                );
-              },
-            ),
-
-          // Book cover — slides left to reveal pages (spine split)
+          // Book cover — 2.5D foreshortening open (width shrinks + vertical skew)
           if (!_coverOpen)
             AnimatedBuilder(
               animation: _coverAnimation,
               builder: (context, child) {
                 final progress = _coverAnimation.value;
                 if (progress >= 0.99) return const SizedBox();
-                final screenWidth = MediaQuery.of(context).size.width;
                 
-                return Transform.translate(
-                  offset: Offset(-screenWidth * progress, 0),
-                  child: GestureDetector(
-                    onTap: _openBook,
-                    onHorizontalDragEnd: (details) {
-                      if ((details.primaryVelocity ?? 0) < -100) _openBook();
-                    },
-                    child: const BookCoverContent(),
-                  ),
+                // Cover shrinks from full width to 0, anchored at left spine
+                // Vertical skew creates the illusion of perspective foreshortening
+                final widthFraction = 1.0 - progress; // 1.0 → 0.0
+                final skewY = progress * 0.15; // slight vertical skew, top tilts right
+                // Shadow intensifies as cover opens, cast on the page beneath
+                final shadowOpacity = (progress * 0.6).clamp(0.0, 0.6);
+                
+                return Stack(
+                  children: [
+                    // Shadow on the page beneath the cover edge
+                    if (progress > 0.01)
+                      Positioned(
+                        left: 0,
+                        top: 0,
+                        bottom: 0,
+                        width: MediaQuery.of(context).size.width * widthFraction + 12,
+                        child: Align(
+                          alignment: Alignment.centerRight,
+                          child: Container(
+                            width: 20,
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                colors: [
+                                  Colors.transparent,
+                                  Colors.black.withAlpha((shadowOpacity * 255).round()),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    // The cover itself
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: SizedBox(
+                        width: MediaQuery.of(context).size.width * widthFraction,
+                        height: double.infinity,
+                        child: Transform(
+                          alignment: Alignment.centerLeft,
+                          transform: Matrix4.skewY(skewY),
+                          child: ClipRect(
+                            child: GestureDetector(
+                              onTap: _openBook,
+                              onHorizontalDragEnd: (details) {
+                                if ((details.primaryVelocity ?? 0) < -100) _openBook();
+                              },
+                              child: const BookCoverContent(),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                 );
               },
             ),
