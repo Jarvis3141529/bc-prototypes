@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'dart:math' as math;
+// dart:math no longer needed after removing 3D rotation
 
 void main() => runApp(const StorybookApp());
 
@@ -90,61 +90,133 @@ class _StorybookFlowState extends State<StorybookFlow>
           if (!_isAnimating || progress == 0) {
             return _buildPage(_currentPage);
           }
-          // Page being turned away, reveal page underneath
+          
+          final screenWidth = MediaQuery.of(context).size.width;
           final revealedPage = _targetPage;
           final turningPage = _currentPage;
           
           if (_goingForward) {
-            // Forward: page lifts from right edge toward viewer, pivoting on left spine
+            // Forward: current page slides left, revealing next page underneath
+            // Next page peeks in from the right with a slight offset
+            final slideOut = -screenWidth * progress;
+            final slideIn = screenWidth * 0.3 * (1.0 - progress);
+            
             return Stack(
               children: [
-                _buildPage(revealedPage),
-                Transform(
-                  alignment: Alignment.centerLeft,
-                  transform: Matrix4.identity()
-                    ..setEntry(3, 2, -0.0008)
-                    ..rotateY(progress * math.pi / 2.5),
-                  child: Opacity(
-                    opacity: (1.0 - progress * 0.8).clamp(0.0, 1.0),
-                    child: Container(
-                      decoration: BoxDecoration(
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withAlpha((progress * 100).toInt()),
-                            blurRadius: 40 * progress,
-                            offset: Offset(10 * progress, 0),
+                // Next page: starts slightly offset right, settles to center
+                Transform.translate(
+                  offset: Offset(slideIn, 0),
+                  child: _buildPage(revealedPage),
+                ),
+                // Current page: slides left with a shadow on its right edge
+                Transform.translate(
+                  offset: Offset(slideOut, 0),
+                  child: Stack(
+                    children: [
+                      _buildPage(turningPage),
+                      // Shadow on the trailing (right) edge — simulates page depth
+                      Positioned(
+                        right: 0,
+                        top: 0,
+                        bottom: 0,
+                        width: 60,
+                        child: DecoratedBox(
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment.centerLeft,
+                              end: Alignment.centerRight,
+                              colors: [
+                                Colors.transparent,
+                                Colors.black.withAlpha((progress * 80).toInt()),
+                              ],
+                            ),
                           ),
-                        ],
+                        ),
                       ),
-                      child: _buildPage(turningPage),
+                    ],
+                  ),
+                ),
+                // Shadow cast onto the revealed page from the turning page's edge
+                Positioned(
+                  left: screenWidth * (1.0 - progress) - 30,
+                  top: 0,
+                  bottom: 0,
+                  width: 30,
+                  child: IgnorePointer(
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.centerLeft,
+                          end: Alignment.centerRight,
+                          colors: [
+                            Colors.black.withAlpha((60 * (1.0 - progress)).toInt()),
+                            Colors.transparent,
+                          ],
+                        ),
+                      ),
                     ),
                   ),
                 ),
               ],
             );
           } else {
-            // Backward: page flips back from left toward viewer, pivoting on right spine
+            // Backward: target page slides in from left
+            final slideIn = -screenWidth * (1.0 - progress);
+            final slideOut = screenWidth * 0.3 * progress;
+            
             return Stack(
               children: [
-                _buildPage(turningPage),
-                Transform(
-                  alignment: Alignment.centerRight,
-                  transform: Matrix4.identity()
-                    ..setEntry(3, 2, -0.0008)
-                    ..rotateY(-(1.0 - progress) * math.pi / 2.5),
-                  child: Opacity(
-                    opacity: (progress * 1.25).clamp(0.0, 1.0),
-                    child: Container(
-                      decoration: BoxDecoration(
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withAlpha(((1.0 - progress) * 100).toInt()),
-                            blurRadius: 40 * (1.0 - progress),
-                            offset: Offset(-10 * (1.0 - progress), 0),
+                // Current page shifts slightly right
+                Transform.translate(
+                  offset: Offset(slideOut, 0),
+                  child: _buildPage(turningPage),
+                ),
+                // Previous page slides in from left
+                Transform.translate(
+                  offset: Offset(slideIn, 0),
+                  child: Stack(
+                    children: [
+                      _buildPage(revealedPage),
+                      // Shadow on trailing edge
+                      Positioned(
+                        right: 0,
+                        top: 0,
+                        bottom: 0,
+                        width: 60,
+                        child: DecoratedBox(
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment.centerLeft,
+                              end: Alignment.centerRight,
+                              colors: [
+                                Colors.transparent,
+                                Colors.black.withAlpha(((1.0 - progress) * 80).toInt()),
+                              ],
+                            ),
                           ),
-                        ],
+                        ),
                       ),
-                      child: _buildPage(revealedPage),
+                    ],
+                  ),
+                ),
+                // Edge shadow
+                Positioned(
+                  left: screenWidth * progress - 30,
+                  top: 0,
+                  bottom: 0,
+                  width: 30,
+                  child: IgnorePointer(
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.centerLeft,
+                          end: Alignment.centerRight,
+                          colors: [
+                            Colors.black.withAlpha((60 * progress).toInt()),
+                            Colors.transparent,
+                          ],
+                        ),
+                      ),
                     ),
                   ),
                 ),
