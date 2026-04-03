@@ -348,29 +348,43 @@ for (let r = 0; r < 10; r++) {
 }
 for (let c = 0; c < 10; c++) LEARNING_MASK[1][c] = true;
 
-// Build 10×10 grid. Column 0 = keystones, columns 1-9 = regular gems
+// Build 10×10 grid.
+// Grid row 0 = top = ×10, row 9 = bottom = ×1
+// Grid col 0 = left = ×1, col 9 = right = ×10
+// Keystones on the diagonal from bottom-left (×1: row9,col0) to top-right (×10: row0,col9)
+// Multiplier for grid row r = 10 - r  (so row 9 = ×1, row 0 = ×10)
+// Column c represents factor c+1
+// Keystone for multiplier N is at row=(10-N), col=(N-1) — i.e. the square number N×N
 const gridEl = document.getElementById('gemGrid');
 
 for (let r = 0; r < 10; r++) {
+  const mult = 10 - r; // which times table this row represents
+  const gemIdx = mult - 1; // index into GEM_CLASSES (0=×1, 9=×10)
+
   // Row energy line
   const energy = document.createElement('div');
-  energy.className = `row-energy ${GEM_CLASSES[r]}`;
-  energy.dataset.row = r;
+  energy.className = `row-energy ${GEM_CLASSES[gemIdx]}`;
+  energy.dataset.mult = mult;
   energy.style.top = `${(r / 10) * 100 + 3}%`;
   gridEl.appendChild(energy);
 
   for (let c = 0; c < 10; c++) {
+    const factor = c + 1;
+    const isKeystone = (factor === mult); // diagonal: N×N
+
     const cell = document.createElement('div');
-    cell.className = `gem-cell ${GEM_CLASSES[r]}`;
+    cell.className = `gem-cell ${GEM_CLASSES[gemIdx]}`;
     cell.style.gridRow = r + 1;
     cell.style.gridColumn = c + 1;
 
-    if (c === 0) {
+    if (isKeystone) {
       cell.classList.add('keystone-cell');
     }
 
     const socket = document.createElement('div');
     socket.className = 'socket';
+    socket.dataset.mult = mult;
+    socket.dataset.factor = factor;
     socket.dataset.row = r;
     socket.dataset.col = c;
 
@@ -410,16 +424,17 @@ function applyState(state) {
   }
 
   if (state === 'keystone') {
+    // ×2 row mastered — mult=2 is grid row 8
     sockets.forEach(s => {
-      const r = +s.dataset.row, c = +s.dataset.col;
-      if (r === 1) {
+      const mult = +s.dataset.mult, r = +s.dataset.row, c = +s.dataset.col;
+      if (mult === 2) {
         s.classList.add('lit', 'bright');
       } else if (LEARNING_MASK[r][c]) {
         s.classList.add('lit', 'faint');
       }
     });
     energyLines.forEach(e => {
-      if (+e.dataset.row === 1) e.classList.add('active');
+      if (+e.dataset.mult === 2) e.classList.add('active');
     });
     label.classList.add('active-label');
   }
