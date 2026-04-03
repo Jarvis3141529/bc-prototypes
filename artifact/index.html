@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bognor's Curse — Artifact Mastery</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&display=swap');
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: 'Cinzel', serif;
+  background: #1a1008;
+  background-image:
+    radial-gradient(ellipse at 50% 30%, rgba(120, 80, 20, 0.15) 0%, transparent 60%),
+    url("data:image/svg+xml,%3Csvg width='100' height='100' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence baseFrequency='0.8' numOctaves='4'/%3E%3C/filter%3E%3Crect width='100' height='100' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+  min-height: 100vh;
+  color: #e0d0b0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* Tab bar */
+.tabs {
+  display: flex;
+  gap: 0.5rem;
+  padding: 1rem;
+  flex-wrap: wrap;
+  justify-content: center;
+  z-index: 10;
+}
+
+.tabs button {
+  font-family: 'Cinzel', serif;
+  font-size: 0.8rem;
+  padding: 0.5rem 1.2rem;
+  border: 1px solid rgba(200, 160, 80, 0.4);
+  background: rgba(40, 30, 15, 0.8);
+  color: #c0a060;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.3s;
+  letter-spacing: 0.05em;
+}
+
+.tabs button.active {
+  background: rgba(200, 160, 80, 0.2);
+  border-color: #d4a843;
+  color: #ffd866;
+  box-shadow: 0 0 12px rgba(200, 160, 80, 0.3);
+}
+
+.tabs button:hover:not(.active) {
+  background: rgba(200, 160, 80, 0.1);
+}
+
+/* Artifact container */
+.artifact-wrap {
+  position: relative;
+  width: min(90vw, 700px);
+  aspect-ratio: 1.15 / 1;
+  margin: 0.5rem auto 2rem;
+}
+
+.artifact-frame {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  position: absolute;
+  top: 0; left: 0;
+  z-index: 2;
+  pointer-events: none;
+  filter: drop-shadow(0 0 20px rgba(180, 140, 60, 0.3));
+  transition: filter 1s;
+}
+
+.artifact-wrap.fully-restored .artifact-frame {
+  filter: drop-shadow(0 0 40px rgba(255, 200, 80, 0.6)) drop-shadow(0 0 80px rgba(255, 180, 60, 0.3));
+}
+
+/* Grid area positioned inside the frame */
+.gem-grid-area {
+  position: absolute;
+  top: 16%;
+  left: 16%;
+  width: 68%;
+  height: 64%;
+  z-index: 3;
+  display: flex;
+  gap: 2%;
+}
+
+.keystones-col {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  width: 8%;
+  padding: 0.5% 0;
+}
+
+.grid-col {
+  flex: 1;
+  display: grid;
+  grid-template-columns: repeat(10, 1fr);
+  grid-template-rows: repeat(10, 1fr);
+  gap: 3%;
+  padding: 0.5%;
+}
+
+/* Socket base */
+.socket {
+  border-radius: 50%;
+  background: radial-gradient(circle at 40% 35%, #2a2015, #0d0a05);
+  border: 1px solid rgba(140, 110, 50, 0.3);
+  box-shadow: inset 0 2px 4px rgba(0,0,0,0.6), 0 1px 2px rgba(140, 110, 50, 0.15);
+  position: relative;
+  transition: all 0.8s ease;
+  aspect-ratio: 1;
+}
+
+/* Keystone socket */
+.keystone {
+  width: 90%;
+  aspect-ratio: 1;
+  margin: 0 auto;
+  border-radius: 4px;
+  transform: rotate(45deg);
+  background: radial-gradient(circle at 40% 35%, #2a2015, #0d0a05);
+  border: 1.5px solid rgba(140, 110, 50, 0.3);
+  box-shadow: inset 0 2px 4px rgba(0,0,0,0.6);
+  transition: all 0.8s ease;
+  position: relative;
+}
+
+/* Gem colors */
+.gem-ruby    { --gem: #e02040; --glow: #ff3050; --shine: #ff8090; }
+.gem-sapphire{ --gem: #2050d0; --glow: #4080ff; --shine: #90b0ff; }
+.gem-emerald { --gem: #10a040; --glow: #20d060; --shine: #80ff90; }
+.gem-amethyst{ --gem: #8030c0; --glow: #b060ff; --shine: #d0a0ff; }
+.gem-topaz   { --gem: #d0a020; --glow: #ffc830; --shine: #ffe080; }
+.gem-aqua    { --gem: #10a0b0; --glow: #30d0e0; --shine: #80f0ff; }
+.gem-rose    { --gem: #d04080; --glow: #ff60a0; --shine: #ffa0c0; }
+.gem-amber   { --gem: #d07020; --glow: #ff9030; --shine: #ffc080; }
+.gem-jade    { --gem: #30a060; --glow: #50d080; --shine: #90ffb0; }
+.gem-diamond { --gem: #a0b0c0; --glow: #d0e0ff; --shine: #ffffff; }
+
+/* Glowing gem */
+.socket.lit {
+  background: radial-gradient(circle at 35% 30%, var(--shine), var(--gem) 60%, #000 120%);
+  border-color: var(--glow);
+  box-shadow:
+    inset 0 -2px 4px rgba(0,0,0,0.3),
+    0 0 8px var(--glow),
+    0 0 2px var(--gem);
+}
+
+.socket.lit.faint {
+  opacity: 0.6;
+  animation: pulse 2.5s ease-in-out infinite;
+}
+
+.socket.lit.bright {
+  opacity: 1;
+  box-shadow:
+    inset 0 -2px 4px rgba(0,0,0,0.2),
+    0 0 12px var(--glow),
+    0 0 25px rgba(var(--glow), 0.3),
+    0 0 4px var(--gem);
+}
+
+.socket.lit.blazing {
+  opacity: 1;
+  box-shadow:
+    inset 0 -2px 4px rgba(0,0,0,0.2),
+    0 0 15px var(--glow),
+    0 0 35px var(--glow),
+    0 0 6px var(--gem);
+  animation: blaze 1.5s ease-in-out infinite;
+}
+
+/* Keystone lit */
+.keystone.lit {
+  background: radial-gradient(circle at 35% 30%, var(--shine), var(--gem) 60%, #000 120%);
+  border-color: var(--glow);
+  box-shadow:
+    inset 0 -2px 4px rgba(0,0,0,0.3),
+    0 0 15px var(--glow),
+    0 0 30px var(--glow);
+}
+
+.keystone.lit.blazing {
+  animation: blaze 1.5s ease-in-out infinite;
+  box-shadow:
+    inset 0 -2px 4px rgba(0,0,0,0.2),
+    0 0 20px var(--glow),
+    0 0 45px var(--glow);
+}
+
+/* Energy line (connects gems in energized row) */
+.energy-line {
+  position: absolute;
+  top: 0; left: 0; width: 100%; height: 100%;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.grid-col {
+  position: relative;
+}
+
+/* Row energy overlay */
+.row-energy {
+  position: absolute;
+  left: 0;
+  width: 100%;
+  height: 9%;
+  background: linear-gradient(90deg, transparent, var(--glow), transparent);
+  opacity: 0;
+  transition: opacity 0.8s;
+  pointer-events: none;
+  filter: blur(3px);
+  border-radius: 50%;
+}
+
+.row-energy.active {
+  opacity: 0.4;
+  animation: energyFlow 2s ease-in-out infinite;
+}
+
+/* Shimmer overlay for fully restored */
+.shimmer-overlay {
+  position: absolute;
+  top: 0; left: 0; width: 100%; height: 100%;
+  background: linear-gradient(
+    135deg,
+    transparent 30%,
+    rgba(255, 220, 100, 0.08) 45%,
+    rgba(255, 255, 255, 0.12) 50%,
+    rgba(255, 220, 100, 0.08) 55%,
+    transparent 70%
+  );
+  background-size: 300% 300%;
+  z-index: 4;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 1s;
+}
+
+.artifact-wrap.fully-restored .shimmer-overlay {
+  opacity: 1;
+  animation: shimmer 3s ease-in-out infinite;
+}
+
+/* Title label */
+.state-label {
+  text-align: center;
+  font-size: 0.85rem;
+  color: #a08050;
+  letter-spacing: 0.1em;
+  margin-top: 0.5rem;
+  min-height: 1.5em;
+  transition: color 0.5s;
+}
+
+.state-label.active-label {
+  color: #ffd866;
+  text-shadow: 0 0 10px rgba(255, 200, 80, 0.4);
+}
+
+/* Animations */
+@keyframes pulse {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 0.8; }
+}
+
+@keyframes blaze {
+  0%, 100% { filter: brightness(1); }
+  50% { filter: brightness(1.3); }
+}
+
+@keyframes energyFlow {
+  0%, 100% { opacity: 0.3; transform: scaleX(0.95); }
+  50% { opacity: 0.6; transform: scaleX(1.05); }
+}
+
+@keyframes shimmer {
+  0% { background-position: 200% 200%; }
+  100% { background-position: -100% -100%; }
+}
+
+/* Back link */
+.back {
+  position: fixed;
+  top: 0.75rem;
+  left: 0.75rem;
+  color: #806040;
+  text-decoration: none;
+  font-size: 0.8rem;
+  z-index: 20;
+  opacity: 0.7;
+}
+.back:hover { opacity: 1; }
+
+/* Responsive */
+@media (max-width: 500px) {
+  .tabs button { font-size: 0.65rem; padding: 0.4rem 0.8rem; }
+  .gem-grid-area { top: 17%; left: 17%; width: 66%; height: 62%; }
+}
+</style>
+</head>
+<body>
+
+<a class="back" href="../">← Prototypes</a>
+
+<div class="tabs">
+  <button class="active" data-state="dormant">🌑 Dormant</button>
+  <button data-state="learning">✨ Learning</button>
+  <button data-state="keystone">🔑 Keystone</button>
+  <button data-state="restored">🌟 Fully Restored</button>
+</div>
+
+<div class="state-label" id="stateLabel">The artifact lies cold and silent…</div>
+
+<div class="artifact-wrap" id="artifactWrap">
+  <img class="artifact-frame" src="../artifact-frame.png" alt="Artifact Frame">
+  <div class="shimmer-overlay"></div>
+  <div class="gem-grid-area">
+    <div class="keystones-col" id="keystones"></div>
+    <div class="grid-col" id="gemGrid"></div>
+  </div>
+</div>
+
+<script>
+const GEM_COLORS = [
+  'gem-ruby','gem-sapphire','gem-emerald','gem-amethyst','gem-topaz',
+  'gem-aqua','gem-rose','gem-amber','gem-jade','gem-diamond'
+];
+
+const LABELS = {
+  dormant: 'The artifact lies cold and silent…',
+  learning: 'Faint glimmers of knowledge awaken…',
+  keystone: 'The ×2 Keystone pulses with mastery!',
+  restored: '✦ The Artifact blazes with full power! ✦'
+};
+
+// Seed random learning pattern (deterministic)
+const LEARNING_MASK = [];
+for (let r = 0; r < 10; r++) {
+  LEARNING_MASK[r] = [];
+  for (let c = 0; c < 10; c++) {
+    LEARNING_MASK[r][c] = Math.sin(r * 13.7 + c * 7.3 + 42) > 0.3;
+  }
+}
+// Ensure row 1 (×2) has more lit for keystone state
+for (let c = 0; c < 10; c++) LEARNING_MASK[1][c] = true;
+
+// Build keystones
+const keystonesEl = document.getElementById('keystones');
+for (let r = 0; r < 10; r++) {
+  const k = document.createElement('div');
+  k.className = `keystone ${GEM_COLORS[r]}`;
+  k.dataset.row = r;
+  keystonesEl.appendChild(k);
+}
+
+// Build gem grid + row energy lines
+const gridEl = document.getElementById('gemGrid');
+for (let r = 0; r < 10; r++) {
+  // Energy line for row
+  const energy = document.createElement('div');
+  energy.className = `row-energy ${GEM_COLORS[r]}`;
+  energy.dataset.row = r;
+  energy.style.top = `${r * 10 + 4}%`;
+  energy.style.setProperty('--glow', getComputedStyle(document.createElement('div')).getPropertyValue('--glow') || '#fff');
+  gridEl.appendChild(energy);
+
+  for (let c = 0; c < 10; c++) {
+    const s = document.createElement('div');
+    s.className = `socket ${GEM_COLORS[r]}`;
+    s.dataset.row = r;
+    s.dataset.col = c;
+    s.style.gridRow = r + 1;
+    s.style.gridColumn = c + 1;
+    gridEl.appendChild(s);
+  }
+}
+
+function applyState(state) {
+  const sockets = gridEl.querySelectorAll('.socket');
+  const keystones = keystonesEl.querySelectorAll('.keystone');
+  const energyLines = gridEl.querySelectorAll('.row-energy');
+  const wrap = document.getElementById('artifactWrap');
+  const label = document.getElementById('stateLabel');
+
+  wrap.classList.remove('fully-restored');
+  label.classList.remove('active-label');
+  label.textContent = LABELS[state];
+
+  sockets.forEach(s => {
+    s.classList.remove('lit', 'faint', 'bright', 'blazing');
+  });
+  keystones.forEach(k => {
+    k.classList.remove('lit', 'blazing');
+  });
+  energyLines.forEach(e => {
+    e.classList.remove('active');
+  });
+
+  if (state === 'dormant') return;
+
+  if (state === 'learning') {
+    sockets.forEach(s => {
+      const r = +s.dataset.row, c = +s.dataset.col;
+      if (LEARNING_MASK[r][c]) {
+        s.classList.add('lit', 'faint');
+      }
+    });
+  }
+
+  if (state === 'keystone') {
+    // Partial learning on other rows
+    sockets.forEach(s => {
+      const r = +s.dataset.row, c = +s.dataset.col;
+      if (r === 1) {
+        s.classList.add('lit', 'bright');
+      } else if (LEARNING_MASK[r][c]) {
+        s.classList.add('lit', 'faint');
+      }
+    });
+    // Keystone for row 1
+    keystones[1].classList.add('lit');
+    // Energy line for row 1
+    energyLines.forEach(e => {
+      if (+e.dataset.row === 1) e.classList.add('active');
+    });
+    label.classList.add('active-label');
+  }
+
+  if (state === 'restored') {
+    wrap.classList.add('fully-restored');
+    label.classList.add('active-label');
+    sockets.forEach(s => s.classList.add('lit', 'blazing'));
+    keystones.forEach(k => k.classList.add('lit', 'blazing'));
+    energyLines.forEach(e => e.classList.add('active'));
+  }
+}
+
+// Tab switching
+document.querySelectorAll('.tabs button').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tabs button').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    applyState(btn.dataset.state);
+  });
+});
+
+// Initial state
+applyState('dormant');
+</script>
+</body>
+</html>
