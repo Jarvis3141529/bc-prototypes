@@ -93,13 +93,12 @@ body {
    and centre it within the golden area. */
 .inner-area {
   position: absolute;
-  /* Centre horizontally; vertically sit within the golden rect */
-  top: 18%;
-  left: 50%;
-  transform: translateX(-50%);
-  /* Use the shorter dimension (height) as the constraint so it fits */
-  height: 56%;
-  aspect-ratio: 1;
+  /* Golden inner area of the 1024×1024 frame: ~25%→76% horiz, ~20%→72% vert.
+     It's roughly square (~51% of frame). We make it square and centre it. */
+  top: 19%;
+  left: 24%;
+  width: 52%;
+  height: 52%;
   z-index: 2;
 }
 
@@ -118,11 +117,14 @@ body {
    We use a CSS grid matching the socket positions. */
 .gem-grid {
   position: absolute;
-  /* The socket array image has some padding; nudge grid to align with sockets */
-  top: 2%;
-  left: 1%;
-  width: 98%;
-  height: 96%;
+  /* Align exactly with socket centres in the socket-array image.
+     Socket content runs from ~10.9%→86.2% horiz, ~6.2%→84.9% vert.
+     Each socket centre: first at ~15.7%, last at ~81.4% (h), ~10.5%→80.6% (v).
+     Grid of 10 cells needs to span centre-to-centre. */
+  top: 5%;
+  left: 9.5%;
+  width: 81%;
+  height: 81%;
   display: grid;
   grid-template-columns: repeat(10, 1fr);
   grid-template-rows: repeat(10, 1fr);
