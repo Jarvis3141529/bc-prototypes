@@ -100,8 +100,24 @@ body {
   padding: 0.5% 0;
 }
 
-.grid-col {
+.grid-wrapper {
   flex: 1;
+  position: relative;
+}
+
+.socket-array-img {
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  object-fit: contain;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.grid-col {
+  position: relative;
+  z-index: 1;
+  width: 100%; height: 100%;
   display: grid;
   grid-template-columns: repeat(10, 1fr);
   grid-template-rows: repeat(10, 1fr);
@@ -112,9 +128,8 @@ body {
 /* Socket base */
 .socket {
   border-radius: 50%;
-  background: radial-gradient(circle at 40% 35%, #2a2015, #0d0a05);
-  border: 1px solid rgba(140, 110, 50, 0.3);
-  box-shadow: inset 0 2px 4px rgba(0,0,0,0.6), 0 1px 2px rgba(140, 110, 50, 0.15);
+  background: transparent;
+  border: none;
   position: relative;
   transition: all 0.8s ease;
   aspect-ratio: 1;
@@ -328,7 +343,10 @@ body {
   <div class="shimmer-overlay"></div>
   <div class="gem-grid-area">
     <div class="keystones-col" id="keystones"></div>
-    <div class="grid-col" id="gemGrid"></div>
+    <div class="grid-wrapper">
+      <img class="socket-array-img" src="../artifact-socket-array.png" alt="">
+      <div class="grid-col" id="gemGrid"></div>
+    </div>
   </div>
 </div>
 
