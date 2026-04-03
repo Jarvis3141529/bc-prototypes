@@ -70,7 +70,7 @@ body {
   text-shadow: 0 0 10px rgba(255, 200, 80, 0.4);
 }
 
-/* Artifact container — frame is the sizing reference */
+/* Artifact container */
 .artifact-wrap {
   position: relative;
   width: min(90vw, 600px);
@@ -88,13 +88,8 @@ body {
   filter: drop-shadow(0 0 40px rgba(255, 200, 80, 0.6)) drop-shadow(0 0 80px rgba(255, 180, 60, 0.3));
 }
 
-/* Inner area — positioned as percentage of frame image.
-   The socket array is square, so we constrain with aspect-ratio: 1
-   and centre it within the golden area. */
 .inner-area {
   position: absolute;
-  /* Golden inner area of the 1024×1024 frame: ~25%→76% horiz, ~20%→72% vert.
-     It's roughly square (~51% of frame). We make it square and centre it. */
   top: 19%;
   left: 24%;
   width: 52%;
@@ -102,20 +97,10 @@ body {
   z-index: 2;
 }
 
-/* Socket array image hidden — we use individual socket backgrounds instead */
-.socket-array-img {
-  display: none;
-}
+.socket-array-img { display: none; }
 
-/* Gem grid — 10 columns × 10 rows, overlaid on the socket array.
-   Column 0 = keystone column, columns 1-9 = regular gems.
-   We use a CSS grid matching the socket positions. */
 .gem-grid {
   position: absolute;
-  /* Align exactly with socket centres in the socket-array image.
-     Socket content runs from ~10.9%→86.2% horiz, ~6.2%→84.9% vert.
-     Each socket centre: first at ~15.7%, last at ~81.4% (h), ~10.5%→80.6% (v).
-     Grid of 10 cells needs to span centre-to-centre. */
   top: 3%;
   left: 3%;
   width: 94%;
@@ -126,7 +111,6 @@ body {
   z-index: 1;
 }
 
-/* Each gem cell — uses single ornate socket as background */
 .gem-cell {
   position: relative;
   display: flex;
@@ -135,7 +119,7 @@ body {
   background: url('artifact-socket-single.png') center/contain no-repeat;
 }
 
-/* Socket (the interactive gem element inside each cell) */
+/* Socket (gem element) */
 .socket {
   width: 58%;
   aspect-ratio: 1;
@@ -143,101 +127,125 @@ body {
   position: relative;
   transition: all 0.8s ease;
   background: transparent;
+  box-shadow: none;
 }
 
-/* Keystone cells — diamond shape in column 0 */
+/* Keystone cells — diamond shape */
 .gem-cell.keystone-cell .socket {
   border-radius: 3px;
   transform: rotate(45deg);
   width: 60%;
 }
 
-/* Gem sprite — shown when lit */
-.socket .gem-sprite {
+/* ======================== */
+/* GEM VISUAL STATES (CSS)  */
+/* ======================== */
+
+/* Obsidian — dark inert gem */
+.socket.obsidian {
+  background: radial-gradient(circle at 35% 30%, #3a3a3a, #1a1a1a 60%, #000 120%);
+  box-shadow: inset 0 1px 2px rgba(255,255,255,0.05);
+}
+
+/* Obsidian lightening levels */
+.socket.obsidian-1 {
+  background: radial-gradient(circle at 35% 30%, #454545, #2a2a2a 60%, #111 120%);
+  box-shadow: inset 0 1px 2px rgba(255,255,255,0.06);
+}
+.socket.obsidian-2 {
+  background: radial-gradient(circle at 35% 30%, #5a5a5a, #4a4a4a 60%, #222 120%);
+  box-shadow: inset 0 1px 2px rgba(255,255,255,0.08);
+}
+.socket.obsidian-3 {
+  background: radial-gradient(circle at 35% 30%, #7a7a7a, #6a6a6a 60%, #333 120%);
+  box-shadow: inset 0 1px 2px rgba(255,255,255,0.1);
+}
+.socket.obsidian-4 {
+  background: radial-gradient(circle at 35% 30%, #9a9a9a, #8a8a8a 60%, #555 120%);
+  box-shadow: inset 0 1px 2px rgba(255,255,255,0.12);
+  animation: pulse-light 2.5s ease-in-out infinite;
+}
+
+/* Diamond — mastered, brilliant white/ice-blue */
+.socket.diamond {
+  background: radial-gradient(circle at 35% 30%, #ffffff, #e0e8ff 40%, #b0c0e0 70%, #8090b0 120%);
+  box-shadow: 0 0 8px rgba(200, 220, 255, 0.6), 0 0 20px rgba(180, 200, 255, 0.3);
+}
+
+/* Diamond sparkle animation */
+.socket.diamond.sparkle {
+  animation: sparkle 2s ease-in-out infinite;
+}
+
+/* Coloured keystones */
+.socket.keystone-ruby {
+  background: radial-gradient(circle at 35% 30%, #ff6080, #e02040 40%, #a01030 70%, #600820 120%);
+  box-shadow: 0 0 12px rgba(224, 32, 64, 0.7), 0 0 30px rgba(255, 48, 80, 0.4), 0 0 50px rgba(224, 32, 64, 0.2);
+}
+.socket.keystone-sapphire {
+  background: radial-gradient(circle at 35% 30%, #80b0ff, #2050d0 40%, #1030a0 70%, #081860 120%);
+  box-shadow: 0 0 12px rgba(32, 80, 208, 0.7), 0 0 30px rgba(64, 128, 255, 0.4), 0 0 50px rgba(32, 80, 208, 0.2);
+}
+.socket.keystone-emerald {
+  background: radial-gradient(circle at 35% 30%, #60ff90, #10a040 40%, #087030 70%, #043018 120%);
+  box-shadow: 0 0 12px rgba(16, 160, 64, 0.7), 0 0 30px rgba(32, 208, 96, 0.4), 0 0 50px rgba(16, 160, 64, 0.2);
+}
+.socket.keystone-amethyst {
+  background: radial-gradient(circle at 35% 30%, #d0a0ff, #8030c0 40%, #5020a0 70%, #281060 120%);
+  box-shadow: 0 0 12px rgba(128, 48, 192, 0.7), 0 0 30px rgba(176, 96, 255, 0.4), 0 0 50px rgba(128, 48, 192, 0.2);
+}
+.socket.keystone-topaz {
+  background: radial-gradient(circle at 35% 30%, #ffe080, #d0a020 40%, #a07810 70%, #604008 120%);
+  box-shadow: 0 0 12px rgba(208, 160, 32, 0.7), 0 0 30px rgba(255, 200, 48, 0.4), 0 0 50px rgba(208, 160, 32, 0.2);
+}
+.socket.keystone-aquamarine {
+  background: radial-gradient(circle at 35% 30%, #80f0ff, #10a0b0 40%, #087080 70%, #043040 120%);
+  box-shadow: 0 0 12px rgba(16, 160, 176, 0.7), 0 0 30px rgba(48, 208, 224, 0.4), 0 0 50px rgba(16, 160, 176, 0.2);
+}
+.socket.keystone-rose {
+  background: radial-gradient(circle at 35% 30%, #ffa0c0, #d04080 40%, #a02060 70%, #601030 120%);
+  box-shadow: 0 0 12px rgba(208, 64, 128, 0.7), 0 0 30px rgba(255, 96, 160, 0.4), 0 0 50px rgba(208, 64, 128, 0.2);
+}
+.socket.keystone-amber {
+  background: radial-gradient(circle at 35% 30%, #ffc080, #e08020 40%, #b06010 70%, #603008 120%);
+  box-shadow: 0 0 12px rgba(224, 128, 32, 0.7), 0 0 30px rgba(255, 144, 48, 0.4), 0 0 50px rgba(224, 128, 32, 0.2);
+}
+.socket.keystone-jade {
+  background: radial-gradient(circle at 35% 30%, #80e0a0, #20a060 40%, #107040 70%, #083020 120%);
+  box-shadow: 0 0 12px rgba(32, 160, 96, 0.7), 0 0 30px rgba(48, 224, 128, 0.4), 0 0 50px rgba(32, 160, 96, 0.2);
+}
+.socket.keystone-fire {
+  background: radial-gradient(circle at 35% 30%, #ffb060, #e06010 40%, #c04008 70%, #802004 120%);
+  box-shadow: 0 0 12px rgba(224, 96, 16, 0.7), 0 0 30px rgba(255, 128, 32, 0.4), 0 0 50px rgba(224, 96, 16, 0.2);
+}
+
+/* Blazing keystone animation */
+.socket.keystone-blazing {
+  animation: blaze-keystone 1.5s ease-in-out infinite;
+}
+
+/* Energy lines for row and column */
+.energy-line {
   position: absolute;
-  top: 5%; left: 5%;
-  width: 90%; height: 90%;
-  border-radius: 50%;
-  background-image: url('artifact-gemstones.jpg');
-  /* Sprite: 1536×1024, 6 cols × 2 rows => each gem 256×512 */
-  background-size: 600% 200%;
-  mix-blend-mode: multiply;
   opacity: 0;
   transition: opacity 0.8s ease;
   pointer-events: none;
-}
-
-.gem-cell.keystone-cell .socket .gem-sprite {
-  border-radius: 3px;
-}
-
-/* Gem color classes — set sprite background-position
-   Row 1 (top): ruby, fire-orange, golden-yellow, emerald, yellow-topaz, aqua
-   Row 2 (bot): sapphire, amethyst, pink, grey, silver, amber
-   Using 10: ruby, fire-orange, golden-yellow, emerald, yellow-topaz, aqua, sapphire, amethyst, pink, amber */
-.gem-ruby .gem-sprite    { background-position: 0% 0%; }
-.gem-orange .gem-sprite  { background-position: 20% 0%; }
-.gem-gold .gem-sprite    { background-position: 40% 0%; }
-.gem-emerald .gem-sprite { background-position: 60% 0%; }
-.gem-topaz .gem-sprite   { background-position: 80% 0%; }
-.gem-aqua .gem-sprite    { background-position: 100% 0%; }
-.gem-sapphire .gem-sprite{ background-position: 0% 100%; }
-.gem-amethyst .gem-sprite{ background-position: 20% 100%; }
-.gem-pink .gem-sprite    { background-position: 40% 100%; }
-.gem-amber .gem-sprite   { background-position: 100% 100%; }
-
-/* Glow colors per gem */
-.gem-ruby    { --gem: #e02040; --glow: #ff3050; --shine: #ff8090; }
-.gem-orange  { --gem: #e07020; --glow: #ff9030; --shine: #ffc080; }
-.gem-gold    { --gem: #d0a020; --glow: #ffc830; --shine: #ffe080; }
-.gem-emerald { --gem: #10a040; --glow: #20d060; --shine: #80ff90; }
-.gem-topaz   { --gem: #c0a010; --glow: #e0c030; --shine: #f0e080; }
-.gem-aqua    { --gem: #10a0b0; --glow: #30d0e0; --shine: #80f0ff; }
-.gem-sapphire{ --gem: #2050d0; --glow: #4080ff; --shine: #90b0ff; }
-.gem-amethyst{ --gem: #8030c0; --glow: #b060ff; --shine: #d0a0ff; }
-.gem-pink    { --gem: #d04080; --glow: #ff60a0; --shine: #ffa0c0; }
-.gem-amber   { --gem: #d07020; --glow: #ff9030; --shine: #ffc080; }
-
-/* Lit states */
-.socket.lit .gem-sprite {
-  opacity: 1;
-}
-
-.socket.lit {
-  box-shadow: 0 0 6px var(--glow), 0 0 2px var(--gem);
-  background: radial-gradient(circle at 40% 35%, rgba(255,255,255,0.1), transparent 70%);
-}
-
-.socket.lit.faint {
-  opacity: 0.55;
-  animation: pulse 2.5s ease-in-out infinite;
-}
-.socket.lit.faint .gem-sprite { opacity: 0.7; }
-
-.socket.lit.bright {
-  box-shadow: 0 0 10px var(--glow), 0 0 20px rgba(255,200,80,0.2), 0 0 3px var(--gem);
-}
-
-.socket.lit.blazing {
-  box-shadow: 0 0 14px var(--glow), 0 0 30px var(--glow), 0 0 5px var(--gem);
-  animation: blaze 1.5s ease-in-out infinite;
-}
-
-/* Row energy lines */
-.row-energy {
-  position: absolute;
-  left: 0; width: 100%;
-  height: 8%;
-  background: linear-gradient(90deg, transparent, var(--glow), transparent);
-  opacity: 0;
-  transition: opacity 0.8s;
-  pointer-events: none;
-  filter: blur(4px);
-  border-radius: 50%;
   z-index: 2;
 }
-.row-energy.active {
-  opacity: 0.35;
+.energy-line.row-line {
+  left: 0; width: 100%;
+  height: 8%;
+  background: linear-gradient(90deg, transparent, rgba(64, 128, 255, 0.5), transparent);
+  filter: blur(4px);
+}
+.energy-line.col-line {
+  top: 0; height: 100%;
+  width: 8%;
+  background: linear-gradient(180deg, transparent, rgba(64, 128, 255, 0.5), transparent);
+  filter: blur(4px);
+}
+.energy-line.active {
+  opacity: 0.5;
   animation: energyFlow 2s ease-in-out infinite;
 }
 
@@ -258,17 +266,21 @@ body {
 }
 
 /* Animations */
-@keyframes pulse {
-  0%, 100% { opacity: 0.45; }
-  50% { opacity: 0.75; }
+@keyframes pulse-light {
+  0%, 100% { opacity: 0.7; }
+  50% { opacity: 1; }
 }
-@keyframes blaze {
+@keyframes sparkle {
+  0%, 100% { filter: brightness(1); }
+  50% { filter: brightness(1.15); box-shadow: 0 0 12px rgba(200, 220, 255, 0.8), 0 0 25px rgba(180, 200, 255, 0.5); }
+}
+@keyframes blaze-keystone {
   0%, 100% { filter: brightness(1); }
   50% { filter: brightness(1.3); }
 }
 @keyframes energyFlow {
-  0%, 100% { opacity: 0.25; transform: scaleX(0.95); }
-  50% { opacity: 0.5; transform: scaleX(1.05); }
+  0%, 100% { opacity: 0.35; transform: scaleX(0.95); }
+  50% { opacity: 0.6; transform: scaleX(1.05); }
 }
 @keyframes shimmer {
   0% { background-position: 200% 200%; }
@@ -287,7 +299,6 @@ body {
 }
 .back:hover { opacity: 1; }
 
-/* Responsive */
 @media (max-width: 500px) {
   .tabs button { font-size: 0.65rem; padding: 0.4rem 0.8rem; }
   .artifact-wrap { width: 95vw; }
@@ -300,19 +311,17 @@ body {
 
 <div class="tabs">
   <button class="active" data-state="dormant">🌑 Dormant</button>
-  <button data-state="learning">✨ Learning</button>
-  <button data-state="keystone">🔑 Keystone</button>
+  <button data-state="awakening">✨ Awakening</button>
+  <button data-state="keystone">🔑 Keystone Ceremony</button>
   <button data-state="restored">🌟 Fully Restored</button>
 </div>
 
 <div class="state-label" id="stateLabel">The artifact lies cold and silent…</div>
 
 <div class="artifact-wrap" id="artifactWrap">
-  <!-- Frame image sets the natural size -->
   <img class="artifact-frame" src="artifact-frame.png" alt="Artifact Frame">
   <div class="shimmer-overlay"></div>
 
-  <!-- Inner area: positioned over the golden interior of the frame -->
   <div class="inner-area">
     <img class="socket-array-img" src="artifact-socket-array.png" alt="">
     <div class="gem-grid" id="gemGrid"></div>
@@ -320,61 +329,69 @@ body {
 </div>
 
 <script>
-// 10 gem types for ×1 through ×10
-const GEM_CLASSES = [
-  'gem-ruby','gem-orange','gem-gold','gem-emerald','gem-topaz',
-  'gem-aqua','gem-sapphire','gem-amethyst','gem-pink','gem-amber'
+// Keystone colours: ×1 through ×10
+const KEYSTONE_COLOURS = [
+  'keystone-ruby',       // ×1
+  'keystone-sapphire',   // ×2
+  'keystone-emerald',    // ×3
+  'keystone-amethyst',   // ×4
+  'keystone-topaz',      // ×5
+  'keystone-aquamarine', // ×6
+  'keystone-rose',       // ×7
+  'keystone-amber',      // ×8
+  'keystone-jade',       // ×9
+  'keystone-fire'        // ×10
 ];
 
 const LABELS = {
-  dormant: 'The artifact lies cold and silent…',
-  learning: 'Faint glimmers of knowledge awaken…',
-  keystone: 'The ×2 Keystone pulses with mastery!',
-  restored: '✦ The Artifact blazes with full power! ✦'
+  dormant:   'The artifact lies cold and silent…',
+  awakening: 'Knowledge stirs within the stones…',
+  keystone:  'The ×2 Keystone blazes with mastery!',
+  restored:  '✦ The Artifact blazes with full power! ✦'
 };
 
-// Deterministic learning pattern
-const LEARNING_MASK = [];
+// Deterministic "awakening" lightness levels (0-4) for non-keystone cells
+// About 40% of gems get some lightening
+const AWAKENING_LEVELS = [];
 for (let r = 0; r < 10; r++) {
-  LEARNING_MASK[r] = [];
+  AWAKENING_LEVELS[r] = [];
   for (let c = 0; c < 10; c++) {
-    LEARNING_MASK[r][c] = Math.sin(r * 13.7 + c * 7.3 + 42) > 0.3;
+    const hash = Math.sin(r * 13.7 + c * 7.3 + 42);
+    if (hash > 0.2) {
+      // Assign levels 1-4 based on hash
+      AWAKENING_LEVELS[r][c] = Math.min(4, Math.floor((hash - 0.2) * 6) + 1);
+    } else {
+      AWAKENING_LEVELS[r][c] = 0; // stays dark obsidian
+    }
   }
 }
-for (let c = 0; c < 10; c++) LEARNING_MASK[1][c] = true;
+// ×2 row (grid row 8) is more progressed
+for (let c = 0; c < 10; c++) {
+  AWAKENING_LEVELS[8][c] = Math.max(AWAKENING_LEVELS[8][c], 3);
+}
 
-// Build 10×10 grid.
+const ALL_GEM_CLASSES = [
+  'obsidian', 'obsidian-1', 'obsidian-2', 'obsidian-3', 'obsidian-4',
+  'diamond', 'sparkle',
+  ...KEYSTONE_COLOURS, 'keystone-blazing'
+];
+
+// Build grid
 // Grid row 0 = top = ×10, row 9 = bottom = ×1
-// Grid col 0 = left = ×1, col 9 = right = ×10
-// Keystones on the diagonal from bottom-left (×1: row9,col0) to top-right (×10: row0,col9)
-// Multiplier for grid row r = 10 - r  (so row 9 = ×1, row 0 = ×10)
-// Column c represents factor c+1
-// Keystone for multiplier N is at row=(10-N), col=(N-1) — i.e. the square number N×N
+// Keystone for multiplier N at row=(10-N), col=(N-1)
 const gridEl = document.getElementById('gemGrid');
 
 for (let r = 0; r < 10; r++) {
-  const mult = 10 - r; // which times table this row represents
-  const gemIdx = mult - 1; // index into GEM_CLASSES (0=×1, 9=×10)
-
-  // Row energy line
-  const energy = document.createElement('div');
-  energy.className = `row-energy ${GEM_CLASSES[gemIdx]}`;
-  energy.dataset.mult = mult;
-  energy.style.top = `${(r / 10) * 100 + 3}%`;
-  gridEl.appendChild(energy);
-
+  const mult = 10 - r;
   for (let c = 0; c < 10; c++) {
     const factor = c + 1;
-    const isKeystone = (factor === mult); // diagonal: N×N
+    const isKeystone = (factor === mult);
 
     const cell = document.createElement('div');
-    cell.className = `gem-cell ${GEM_CLASSES[gemIdx]}`;
+    cell.className = 'gem-cell';
     cell.style.gridRow = r + 1;
     cell.style.gridColumn = c + 1;
-
-    if (isKeystone) {
-      cell.classList.add('keystone-cell');
-    }
+    if (isKeystone) cell.classList.add('keystone-cell');
 
     const socket = document.createElement('div');
     socket.className = 'socket';
@@ -382,63 +399,117 @@ for (let r = 0; r < 10; r++) {
     socket.dataset.factor = factor;
     socket.dataset.row = r;
     socket.dataset.col = c;
-
-    const sprite = document.createElement('div');
-    sprite.className = 'gem-sprite';
-    socket.appendChild(sprite);
+    socket.dataset.isKeystone = isKeystone ? '1' : '0';
 
     cell.appendChild(socket);
     gridEl.appendChild(cell);
   }
 }
 
+// Energy lines (row and column for keystone ceremony)
+const rowEnergy = document.createElement('div');
+rowEnergy.className = 'energy-line row-line';
+rowEnergy.id = 'energyRow';
+gridEl.appendChild(rowEnergy);
+
+const colEnergy = document.createElement('div');
+colEnergy.className = 'energy-line col-line';
+colEnergy.id = 'energyCol';
+gridEl.appendChild(colEnergy);
+
+function clearSockets() {
+  gridEl.querySelectorAll('.socket').forEach(s => {
+    ALL_GEM_CLASSES.forEach(cls => s.classList.remove(cls));
+  });
+  rowEnergy.classList.remove('active');
+  colEnergy.classList.remove('active');
+}
+
 function applyState(state) {
   const sockets = gridEl.querySelectorAll('.socket');
-  const energyLines = gridEl.querySelectorAll('.row-energy');
   const wrap = document.getElementById('artifactWrap');
   const label = document.getElementById('stateLabel');
 
   wrap.classList.remove('fully-restored');
   label.classList.remove('active-label');
   label.textContent = LABELS[state];
+  clearSockets();
 
-  sockets.forEach(s => {
-    s.classList.remove('lit', 'faint', 'bright', 'blazing');
-  });
-  energyLines.forEach(e => e.classList.remove('active'));
-
-  if (state === 'dormant') return;
-
-  if (state === 'learning') {
+  if (state === 'dormant') {
     sockets.forEach(s => {
+      if (s.dataset.isKeystone === '1') return; // empty socket
+      s.classList.add('obsidian');
+    });
+    return;
+  }
+
+  if (state === 'awakening') {
+    sockets.forEach(s => {
+      if (s.dataset.isKeystone === '1') return; // keystones empty
       const r = +s.dataset.row, c = +s.dataset.col;
-      if (LEARNING_MASK[r][c]) {
-        s.classList.add('lit', 'faint');
+      const level = AWAKENING_LEVELS[r][c];
+      if (level === 0) {
+        s.classList.add('obsidian');
+      } else {
+        s.classList.add('obsidian-' + level);
       }
     });
+    return;
   }
 
   if (state === 'keystone') {
-    // ×2 row mastered — mult=2 is grid row 8
+    label.classList.add('active-label');
+    // ×2 keystone at row 8, col 1 (mult=2, factor=2)
+    const keystoneRow = 8;
+    const keystoneCol = 1;
+
     sockets.forEach(s => {
-      const mult = +s.dataset.mult, r = +s.dataset.row, c = +s.dataset.col;
-      if (mult === 2) {
-        s.classList.add('lit', 'bright');
-      } else if (LEARNING_MASK[r][c]) {
-        s.classList.add('lit', 'faint');
+      const r = +s.dataset.row, c = +s.dataset.col;
+      const isK = s.dataset.isKeystone === '1';
+
+      // The ×2 keystone itself
+      if (r === keystoneRow && c === keystoneCol) {
+        s.classList.add('keystone-sapphire', 'keystone-blazing');
+        return;
+      }
+
+      // All gems in ×2's row or column become diamond
+      if (r === keystoneRow || c === keystoneCol) {
+        if (isK) return; // other keystones stay empty
+        s.classList.add('diamond');
+        return;
+      }
+
+      // Rest: obsidian at various levels
+      if (isK) return; // other keystones empty
+      const level = AWAKENING_LEVELS[r][c];
+      if (level === 0) {
+        s.classList.add('obsidian');
+      } else {
+        s.classList.add('obsidian-' + Math.min(level, 2)); // less progressed than awakening
       }
     });
-    energyLines.forEach(e => {
-      if (+e.dataset.mult === 2) e.classList.add('active');
-    });
-    label.classList.add('active-label');
+
+    // Position energy lines on row 8 and col 1
+    rowEnergy.style.top = `${(keystoneRow / 10) * 100 + 5}%`;
+    colEnergy.style.left = `${(keystoneCol / 10) * 100 + 5}%`;
+    rowEnergy.classList.add('active');
+    colEnergy.classList.add('active');
+    return;
   }
 
   if (state === 'restored') {
     wrap.classList.add('fully-restored');
     label.classList.add('active-label');
-    sockets.forEach(s => s.classList.add('lit', 'blazing'));
-    energyLines.forEach(e => e.classList.add('active'));
+
+    sockets.forEach(s => {
+      if (s.dataset.isKeystone === '1') {
+        const mult = +s.dataset.mult;
+        s.classList.add(KEYSTONE_COLOURS[mult - 1], 'keystone-blazing');
+      } else {
+        s.classList.add('diamond', 'sparkle');
+      }
+    });
   }
 }
 
